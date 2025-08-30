@@ -34,15 +34,25 @@ function RoutineEdit() {
     };
 
     // Form state for edit routine
-    const [formData, setFormData] = useState({
-        day: "Monday",
+    const [formData, setFormData] = useState([{
+        day: "",
         routineName: "",
-        selectedDays: ["Mon"],
+        selectedDays: [],   // ✅ must be an array
         startTime: "",
         endTime: "",
         color: "blue",
         description: "",
-    });
+    }]);
+
+    const dayMap = {
+        Monday: "Mon",
+        Tuesday: "Tue",
+        Wednesday: "Wed",
+        Thursday: "Thu",
+        Friday: "Fri",
+        Saturday: "Sat",
+        Sunday: "Sun",
+    };
 
     // Handle input change
     // const handleChange = (e) => {
@@ -75,19 +85,62 @@ function RoutineEdit() {
                     const shortDay = dayMap[today];
                     console.log("Today is:", today, "(", shortDay, ")");
                     // Find routine for today
-                    const todayRoutine = res.routines.find(r => r.days === shortDay);
-                    console.log("Today's routine:", todayRoutine);
+                    // const todayRoutine = res.routines.find(r => r.days === shortDay);
+                    const todayRoutines = res.routines.filter(r => r.days.includes(shortDay));
 
-                    if (todayRoutine) {
-                        setFormData({
-                            day: today,
-                            routineName: todayRoutine.routine_name,
-                            selectedDays: [todayRoutine.days],
-                            startTime: formatTime(todayRoutine.start_time),  // ✅ convert seconds → HH:MM
-                            endTime: formatTime(todayRoutine.end_time),
-                            color: todayRoutine.color || "blue",
-                            description: todayRoutine.description || "",
+                    console.log("Today's routine:", todayRoutines);
+
+
+                    if (todayRoutines.length > 0) {
+                        let newBlocks = [];
+
+                        todayRoutines.forEach(r => {
+                            const start = new Date(`2025-01-01T${r.start_time}`);
+                            const end = new Date(`2025-01-01T${r.end_time}`);
+
+                            const startHour = start.getHours();
+                            const startMinutes = start.getMinutes();
+                            const endHour = end.getHours();
+                            const endMinutes = end.getMinutes();
+
+                            for (let hour = startHour; hour <= endHour; hour++) {
+                                let top = 0;
+                                let height = 100;
+
+                                if (hour === startHour && hour === endHour) {
+                                    // Task within same hour
+                                    top = (startMinutes / 60) * 100;
+                                    height = ((endMinutes - startMinutes) / 60) * 100;
+                                } else if (hour === startHour) {
+                                    // First hour
+                                    top = (startMinutes / 60) * 100;
+                                    height = 100 - top;
+                                } else if (hour === endHour) {
+                                    // Last hour
+                                    top = 0;
+                                    height = (endMinutes / 60) * 100;
+                                } else {
+                                    // Middle hours
+                                    top = 0;
+                                    height = 100;
+                                }
+
+                                newBlocks.push({
+                                    hour,
+                                    top,
+                                    height,
+                                    task: {
+                                        routineName: r.routine_name,
+                                        description: r.description,
+                                        color: r.color || "blue",
+                                    }
+                                });
+                            }
                         });
+
+                        // ✅ Set to renderedBlocks (not formData)
+                        setRenderedBlocks(newBlocks);
+                        console.log("Rendered blocks from DB:", newBlocks);
                     }
                 }
             } catch (err) {
@@ -122,15 +175,7 @@ function RoutineEdit() {
     };
 
 
-    const dayMap = {
-        Monday: "Mon",
-        Tuesday: "Tue",
-        Wednesday: "Wed",
-        Thursday: "Thu",
-        Friday: "Fri",
-        Saturday: "Sat",
-        Sunday: "Sun",
-    };
+
 
     // Handle checkbox toggle
     const handleCheckbox = (day) => {
@@ -156,7 +201,7 @@ function RoutineEdit() {
     // Reset
     const handleReset = () => {
         setFormData({
-            day: "Monday",
+            day: "",
             routineName: "",
             selectedDays: [],
             startTime: "",
@@ -400,7 +445,8 @@ function RoutineEdit() {
                                         <label key={day} className="flex items-center space-x-2 text-sm">
                                             <input
                                                 type="checkbox"
-                                                checked={formData.selectedDays.includes(day)}
+                                                // checked={formData.selectedDays.includes(day)}
+                                                checked={formData.selectedDays?.includes(day) || false}
                                                 onChange={() => handleCheckbox(day)}
                                                 className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-offset-0 focus:ring-indigo-200 focus:ring-opacity-50"
                                             />
