@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+python-dotenv
+clerk_backend_api 
+svix
+mysqlclient
+BeautifulSoup4
+playwright
+langchain
+langchain-google-genai
+# mysql-connector-python
+aiomysql
