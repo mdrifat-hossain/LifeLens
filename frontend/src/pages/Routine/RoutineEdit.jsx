@@ -72,77 +72,157 @@ function RoutineEdit() {
         }));
     }, []);
 
+    // useEffect(() => {
+    //     const fetchRoutines = async () => {
+    //         try {
+    //             const res = await makeRequest("get_routines", { method: "GET" });
+    //             console.log("Fetched routines:", res.routines);
+
+    //             if (res.routines && res.routines.length > 0) {
+
+    //                 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    //                 const today = days[new Date().getDay()];
+    //                 const shortDay = dayMap[today];
+    //                 console.log("Today is:", today, "(", shortDay, ")");
+
+    //                 const todayRoutines = res.routines.filter(r => r.days.includes(shortDay));
+
+    //                 console.log("Today's routine:", todayRoutines);
+
+
+    //                 if (todayRoutines.length > 0) {
+    //                     let newBlocks = [];
+
+    //                     todayRoutines.forEach(r => {
+    //                         const start = new Date(`2025-01-01T${r.start_time}`);
+    //                         const end = new Date(`2025-01-01T${r.end_time}`);
+
+    //                         const startHour = start.getHours();
+    //                         const startMinutes = start.getMinutes();
+    //                         const endHour = end.getHours();
+    //                         const endMinutes = end.getMinutes();
+
+    //                         for (let hour = startHour; hour <= endHour; hour++) {
+    //                             let top = 0;
+    //                             let height = 100;
+
+    //                             if (hour === startHour && hour === endHour) {
+
+    //                                 top = (startMinutes / 60) * 100;
+    //                                 height = ((endMinutes - startMinutes) / 60) * 100;
+    //                             } else if (hour === startHour) {
+
+    //                                 top = (startMinutes / 60) * 100;
+    //                                 height = 100 - top;
+    //                             } else if (hour === endHour) {
+
+    //                                 top = 0;
+    //                                 height = (endMinutes / 60) * 100;
+    //                             } else {
+
+    //                                 top = 0;
+    //                                 height = 100;
+    //                             }
+
+    //                             newBlocks.push({
+    //                                 hour,
+    //                                 top,
+    //                                 height,
+    //                                 task: {
+    //                                     routineName: r.routine_name,
+    //                                     description: r.description,
+    //                                     color: r.color || "blue",
+    //                                 }
+    //                             });
+    //                         }
+    //                     });
+
+
+    //                     setRenderedBlocks(newBlocks);
+    //                     console.log("Rendered blocks from DB:", newBlocks);
+    //                 }
+    //             }
+    //         } catch (err) {
+    //             console.error("Error fetching routines:", err);
+    //         }
+    //     };
+
+    //     fetchRoutines();
+    // }, []);
+
+    const [routines, setRoutines] = useState([]);
+
+    const generateBlocks = (selectedDay) => {
+        console.log("Generating blocks for day:", selectedDay);
+        console.log("All routines:", routines);
+        if (!routines || routines.length === 0) return;
+
+        const shortDay = dayMap[selectedDay];
+        const dayRoutines = routines.filter(r => r.days.includes(shortDay));
+
+        let newBlocks = [];
+        dayRoutines.forEach(r => {
+            const start = new Date(`2025-01-01T${r.start_time}`);
+            const end = new Date(`2025-01-01T${r.end_time}`);
+
+            const startHour = start.getHours();
+            const startMinutes = start.getMinutes();
+            const endHour = end.getHours();
+            const endMinutes = end.getMinutes();
+
+            for (let hour = startHour; hour <= endHour; hour++) {
+                let top = 0;
+                let height = 100;
+
+                if (hour === startHour && hour === endHour) {
+                    top = (startMinutes / 60) * 100;
+                    height = ((endMinutes - startMinutes) / 60) * 100;
+                } else if (hour === startHour) {
+                    top = (startMinutes / 60) * 100;
+                    height = 100 - top;
+                } else if (hour === endHour) {
+                    top = 0;
+                    height = (endMinutes / 60) * 100;
+                } else {
+                    top = 0;
+                    height = 100;
+                }
+
+                newBlocks.push({
+                    hour,
+                    top,
+                    height,
+                    task: {
+                        routineName: r.routine_name,
+                        description: r.description,
+                        color: r.color || "blue",
+                    }
+                });
+            }
+        });
+
+        setRenderedBlocks(newBlocks);
+        console.log("Rendered blocks for", selectedDay, ":", newBlocks);
+    };
+
+    // Fetch routines once
     useEffect(() => {
         const fetchRoutines = async () => {
             try {
                 const res = await makeRequest("get_routines", { method: "GET" });
+                setRoutines(res.routines || []);
                 console.log("Fetched routines:", res.routines);
 
-                if (res.routines && res.routines.length > 0) {
-                    // Get today's short day (Mon, Tue, etc.)
-                    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                    const today = days[new Date().getDay()];
-                    const shortDay = dayMap[today];
-                    console.log("Today is:", today, "(", shortDay, ")");
-                    // Find routine for today
-                    // const todayRoutine = res.routines.find(r => r.days === shortDay);
-                    const todayRoutines = res.routines.filter(r => r.days.includes(shortDay));
+                // set today's routine initially
+                const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                const today = days[new Date().getDay()];
+                console.log("Today is:", today);
 
-                    console.log("Today's routine:", todayRoutines);
-
-
-                    if (todayRoutines.length > 0) {
-                        let newBlocks = [];
-
-                        todayRoutines.forEach(r => {
-                            const start = new Date(`2025-01-01T${r.start_time}`);
-                            const end = new Date(`2025-01-01T${r.end_time}`);
-
-                            const startHour = start.getHours();
-                            const startMinutes = start.getMinutes();
-                            const endHour = end.getHours();
-                            const endMinutes = end.getMinutes();
-
-                            for (let hour = startHour; hour <= endHour; hour++) {
-                                let top = 0;
-                                let height = 100;
-
-                                if (hour === startHour && hour === endHour) {
-                                    // Task within same hour
-                                    top = (startMinutes / 60) * 100;
-                                    height = ((endMinutes - startMinutes) / 60) * 100;
-                                } else if (hour === startHour) {
-                                    // First hour
-                                    top = (startMinutes / 60) * 100;
-                                    height = 100 - top;
-                                } else if (hour === endHour) {
-                                    // Last hour
-                                    top = 0;
-                                    height = (endMinutes / 60) * 100;
-                                } else {
-                                    // Middle hours
-                                    top = 0;
-                                    height = 100;
-                                }
-
-                                newBlocks.push({
-                                    hour,
-                                    top,
-                                    height,
-                                    task: {
-                                        routineName: r.routine_name,
-                                        description: r.description,
-                                        color: r.color || "blue",
-                                    }
-                                });
-                            }
-                        });
-
-                        // ✅ Set to renderedBlocks (not formData)
-                        setRenderedBlocks(newBlocks);
-                        console.log("Rendered blocks from DB:", newBlocks);
-                    }
-                }
+                setFormData((prev) => ({
+                    ...prev,
+                    day: today,
+                    selectedDays: [dayMap[today]]
+                }));
             } catch (err) {
                 console.error("Error fetching routines:", err);
             }
@@ -151,6 +231,19 @@ function RoutineEdit() {
         fetchRoutines();
     }, []);
 
+
+    useEffect(() => {
+        if (routines && routines.length > 0 && formData.day) {
+            generateBlocks(formData.day); // ✅ pass the selected day
+        }
+    }, [routines, formData.day]);
+
+    // 🔑 Run generateBlocks whenever formData.day changes
+    // useEffect(() => {
+    //     if (formData.day) {
+    //         generateBlocks(formData.day);
+    //     }
+    // }, [formData.day]);
 
 
     const handleChange = (e) => {
@@ -195,7 +288,7 @@ function RoutineEdit() {
     // Submit
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log("Routine Data:", formData);
+        // console.log("Routine Data:", formData);
     };
 
     // Reset
@@ -298,7 +391,7 @@ function RoutineEdit() {
     // };
     const handleAddRoutine = async () => {
         const { routineName, description, startTime, endTime, color } = formData;
-        console.log("Adding Routine:", formData);
+        // console.log("Adding Routine:", formData);
 
         const start = new Date(`2025-01-01T${startTime}`);
         const end = new Date(`2025-01-01T${endTime}`);
