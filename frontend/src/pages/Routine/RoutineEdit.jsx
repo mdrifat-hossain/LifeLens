@@ -5,10 +5,14 @@ import { FaSave } from "react-icons/fa";
 import { IoSend } from "react-icons/io5";
 import { useApi } from "../../utils/api";
 import { useEffect } from 'react';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function RoutineEdit() {
     const { makeRequest } = useApi();
     const [showAIHelp, setShowAIHelp] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [routines, setRoutines] = useState([]);
 
     const [messages, setMessages] = useState([
         { sender: "ai", text: "Hi! I can help you create your weekly routine. Tell me about your ideal schedule and I'll organize it for you." }
@@ -35,6 +39,7 @@ function RoutineEdit() {
 
     // Form state for edit routine
     const [formData, setFormData] = useState([{
+        routineId: null,
         day: "",
         routineName: "",
         selectedDays: [],   // ✅ must be an array
@@ -150,10 +155,10 @@ function RoutineEdit() {
     //     fetchRoutines();
     // }, []);
 
-    const [routines, setRoutines] = useState([]);
+
 
     const generateBlocks = (selectedDay) => {
-        console.log("Generating blocks for day:", selectedDay);
+        // console.log("Generating blocks for day:", selectedDay);
         console.log("All routines:", routines);
         if (!routines || routines.length === 0) return;
 
@@ -193,6 +198,7 @@ function RoutineEdit() {
                     top,
                     height,
                     task: {
+                        routineId: r.routine_id,
                         routineName: r.routine_name,
                         description: r.description,
                         color: r.color || "blue",
@@ -202,7 +208,8 @@ function RoutineEdit() {
         });
 
         setRenderedBlocks(newBlocks);
-        console.log("Rendered blocks for", selectedDay, ":", newBlocks);
+        // setRenderedBlocks((prev) => [...prev, ...newBlocks]);
+        // console.log("Rendered blocks for", selectedDay, ":", newBlocks);
     };
 
     // Fetch routines once
@@ -211,12 +218,12 @@ function RoutineEdit() {
             try {
                 const res = await makeRequest("get_routines", { method: "GET" });
                 setRoutines(res.routines || []);
-                console.log("Fetched routines:", res.routines);
+                // console.log("Fetched routines:", res.routines);
 
                 // set today's routine initially
                 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
                 const today = days[new Date().getDay()];
-                console.log("Today is:", today);
+                // console.log("Today is:", today);
 
                 setFormData((prev) => ({
                     ...prev,
@@ -389,9 +396,151 @@ function RoutineEdit() {
 
     //     setRenderedBlocks((prev) => [...prev, ...newBlocks]);
     // };
+
+
+    const errorAddingCart = () => {
+        toast.error("Routine is overlap. If you want then delete existing routine", {
+            position: "bottom-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: false,
+            progress: undefined,
+        });
+    }
+
+    const showRoutineOverlap = (item) => {
+        // prevent duplicates
+        if (!shoppingList.find((i) => i.name === item.name)) {
+            setShoppingList((prev) => [...prev, item]);
+        }
+        else {
+            errorAddingCart();
+
+        }
+    };
+
+    const parseTimeToMinutes = (t) => {
+        if (t == null) return null;
+
+        // if number (could be seconds from DB or minutes)
+        if (typeof t === "number") {
+            // if large number, assume seconds -> convert to minutes
+            if (t > 1000) return Math.floor(t / 60);
+            return t; // assume already minutes
+        }
+
+        // if string "HH:MM" or "H:MM"
+        if (typeof t === "string") {
+            const m = t.match(/^(\d{1,2}):(\d{2})$/);
+            if (m) {
+                const hh = parseInt(m[1], 10);
+                const mm = parseInt(m[2], 10);
+                return hh * 60 + mm;
+            }
+            // if DB returned "01:30:00", handle that
+            const m2 = t.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
+            if (m2) {
+                const hh = parseInt(m2[1], 10);
+                const mm = parseInt(m2[2], 10);
+                return hh * 60 + mm;
+            }
+        }
+
+        return null; // unknown format
+    };
+
+    // helper: check overlap between two intervals (in minutes). Supports overnight intervals.
+    const intervalsOverlap = (s1, e1, s2, e2) => {
+        // if any is null -> no decision (treat as no overlap)
+        if (s1 == null || e1 == null || s2 == null || e2 == null) return false;
+
+        // if interval goes overnight (end <= start), treat end as next day
+        if (e1 <= s1) e1 += 24 * 60;
+        if (e2 <= s2) e2 += 24 * 60;
+
+        return s1 < e2 && s2 < e1;
+    };
+
+
+
     const handleAddRoutine = async () => {
-        const { routineName, description, startTime, endTime, color } = formData;
+        // console.log("Routine handle ", routines);
+        const { routineName, description, startTime, endTime, color, selectedDays } = formData;
         // console.log("Adding Routine:", formData);
+
+        if (!routineName || !startTime || !endTime || !selectedDays?.length) {
+            // toast.error("Please fill name, start/end time and select day(s).");
+            // console.log("Missing required fields, not adding routine.");
+            toast.warning("Please fill name, start/end time and select day(s).", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
+            return;
+        }
+
+        // parse new routine times (form input are "HH:MM")
+        const newStartMin = parseTimeToMinutes(startTime);
+        const newEndMin = parseTimeToMinutes(endTime);
+
+        if (newStartMin == null || newEndMin == null) {
+            toast.error("Invalid time format. Use HH:MM.", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
+            return;
+        }
+
+        // check conflicts with existing routines
+        // ensure routines is defined and each routine.days is normalized to array
+        for (const r of routines || []) {
+            const existingDays = Array.isArray(r.days) ? r.days : (typeof r.days === "string" ? r.days.split(",") : []);
+            // if no shared day -> skip
+            const sharesDay = existingDays.some((d) => selectedDays.includes(d));
+            if (!sharesDay) continue;
+
+            // parse existing times (your DB uses start_time/end_time keys)
+            const existingStartMin = parseTimeToMinutes(r.start_time ?? r.startTime ?? r.start);
+            const existingEndMin = parseTimeToMinutes(r.end_time ?? r.endTime ?? r.end);
+
+            if (intervalsOverlap(newStartMin, newEndMin, existingStartMin, existingEndMin)) {
+                // conflict found -> show toast with routine name + times, then exit
+                const existingStartLabel = r.start_time ?? r.startTime ?? (existingStartMin != null ? `${Math.floor(existingStartMin / 60).toString().padStart(2, "0")}:${(existingStartMin % 60).toString().padStart(2, "0")}` : "??:??");
+                const existingEndLabel = r.end_time ?? r.endTime ?? (existingEndMin != null ? `${Math.floor(existingEndMin / 60).toString().padStart(2, "0")}:${(existingEndMin % 60).toString().padStart(2, "0")}` : "??:??");
+
+                toast.error(`Conflict with "${r.routine_name}" (${existingStartLabel} - ${existingEndLabel})`, {
+                    position: "bottom-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: false,
+                    progress: undefined,
+                });
+                // console.log("Conflict detected, not adding routine.");
+                // toast.error("Routine is overlap. If you want then delete existing routine", {
+                //     position: "bottom-right",
+                //     autoClose: 5000,
+                //     hideProgressBar: false,
+                //     closeOnClick: true,
+                //     pauseOnHover: true,
+                //     draggable: false,
+                //     progress: undefined,
+                // });
+                return; // stop saving
+            }
+        }
 
         const start = new Date(`2025-01-01T${startTime}`);
         const end = new Date(`2025-01-01T${endTime}`);
@@ -433,14 +582,6 @@ function RoutineEdit() {
             });
         }
 
-        // Prepare payload for backend
-        // const payload = {
-        //     name,
-        //     description,
-        //     start_time: startTime,
-        //     end_time: endTime,
-        //     color,
-        // };
         const payload = {
             routine_name: formData.routineName,   // convert camelCase → snake_case
             selectedDays: formData.selectedDays,
@@ -466,6 +607,29 @@ function RoutineEdit() {
         }
     };
 
+    const handleBlockClick = (task, idx) => {
+        console.log("Clicked task:", task);
+
+        // Find the full routine using routineId
+        const routine = routines.find(r => r.routine_id === task.routineId);
+
+        if (!routine) return; // safeguard if not found
+
+        setFormData({
+            routineId: routine.routine_id,
+            routineName: routine.routine_name,
+            description: routine.description,
+            startTime: routine.start_time,
+            endTime: routine.end_time,
+            selectedDays: routine.days,   // should already be an array
+            color: routine.color || "blue",
+        });
+
+        setIsEditing(true);
+    };
+
+
+
 
 
 
@@ -485,6 +649,7 @@ function RoutineEdit() {
 
     return (
         <div className="flex-grow container mx-auto px-6 py-8">
+            <ToastContainer />
             <div className="flex grid-cols-1 lg:grid-cols-3 gap-8">
                 <form
                     onSubmit={handleSubmit}
@@ -610,7 +775,7 @@ function RoutineEdit() {
                                     rows="3"
                                 ></textarea>
                             </div>
-                            <div className="flex justify-end space-x-3 pt-4">
+                            {/* <div className="flex justify-end space-x-3 pt-4">
                                 <button
                                     type="button"
                                     onClick={handleReset}
@@ -625,6 +790,50 @@ function RoutineEdit() {
                                 >
                                     Add Routine
                                 </button>
+                            </div> */}
+                            <div className="flex justify-end space-x-3 pt-4">
+                                {isEditing ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={handleReset}
+                                            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            // onClick={handleUpdateRoutine}
+                                            className="py-2 px-4 rounded-md text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600"
+                                        >
+                                            Update
+                                        </button>
+                                        <button
+                                            type="button"
+                                            // onClick={handleDeleteRoutine}
+                                            className="py-2 px-4 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                                        >
+                                            Delete
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={handleReset}
+                                            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleAddRoutine}
+                                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                                            type="submit"
+                                        >
+                                            Add Routine
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -702,6 +911,7 @@ function RoutineEdit() {
                                                     backgroundColor: block.task.color,
                                                     opacity: 0.5,
                                                 }}
+                                                onClick={() => handleBlockClick(block.task, idx)}
                                             >
                                                 <div className="font-bold text-center">{block.task.routineName}</div>
                                                 <div className="text-[10px] text-center">{block.task.description}</div>
