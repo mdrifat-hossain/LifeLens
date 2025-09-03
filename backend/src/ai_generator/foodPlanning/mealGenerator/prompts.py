@@ -64,6 +64,7 @@ Validation Rules:
    - It specifies exactly one meal type (Breakfast, Lunch, or Dinner).
    - Example of valid: "Suggest a vegetarian dinner for Friday." 
    - Example of valid: "Change Tuesday lunch to a chicken dish."
+   - Example of valid: "Suggest a heavy meal for Tuesday's lunch."
 2. A request is INVALID if:
    - It is missing either the day or the meal type.
    - It specifies more than one meal type at once.

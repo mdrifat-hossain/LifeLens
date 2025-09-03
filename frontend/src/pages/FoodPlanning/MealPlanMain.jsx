@@ -44,7 +44,7 @@ function MealPlanMain() {
     const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
     const generate_meal = async () => {
-        setMealData([])
+        setMealData({ weekly: [], daily: [] })
         setIsLoading(true);
 
         try {
@@ -63,25 +63,35 @@ function MealPlanMain() {
     const set_Meal_Data = (res) => {
         const grouped = {};
         const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
-        setDay(today)
+        setDay(today);
         let todayMeals = [];
 
         res.data.forEach(item => {
             const nutrition = JSON.parse(item.nutrition);
 
+            let parsedRecipe = item.recipe;
+            try {
+                if (typeof parsedRecipe === "string") {
+                    parsedRecipe = JSON.parse(parsedRecipe);
+                }
+            } catch (err) {
+                console.error("Error parsing recipe:", err);
+                parsedRecipe = [];
+            }
+
             const mealObj = {
                 title: `${capitalize(item.meal_type)}: ${item.meal_name.replace(/"/g, '')}`,
                 details: `Calories: ${nutrition.calories} | Protein: ${nutrition.protein_g}g | Carbs: ${nutrition.carbs_g}g | Fat: ${nutrition.fat_g}g`,
-                image: "https://media.post.rvohealth.io/wp-content/uploads/2024/06/oatmeal-bowl-blueberries-strawberries-breakfast-1200x628-facebook.jpg"
+                image: "https://media.post.rvohealth.io/wp-content/uploads/2024/06/oatmeal-bowl-blueberries-strawberries-breakfast-1200x628-facebook.jpg",
+                recipe: parsedRecipe // ✅ FIXED
             };
+            console.log("Recipe for", item.meal_name, ":", parsedRecipe);
 
-            // Weekly grouping
             if (!grouped[item.meal_day]) {
                 grouped[item.meal_day] = { day: item.meal_day, meals: [] };
             }
             grouped[item.meal_day].meals.push(mealObj);
 
-            // Daily (today only)
             if (item.meal_day.toLowerCase() === today.toLowerCase()) {
                 todayMeals.push(mealObj);
             }
@@ -94,24 +104,37 @@ function MealPlanMain() {
     };
 
 
+
+
     const updateMeal = (day, mealType, newMeal) => {
-        setMealData(prev =>
-            prev.map(d => {
+        setMealData(prev => {
+            // Update weekly meals
+            const updatedWeekly = prev.weekly.map(d => {
                 if (d.day === day) {
                     const updatedMeals = d.meals.map(m => {
-                        // Compare the meal type by splitting the title
                         const currentType = m.title.split(":")[0].toLowerCase();
                         if (currentType === mealType.toLowerCase()) {
-                            return newMeal; // Replace old meal with newMeal
+                            return newMeal; // replace
                         }
-                        return m; // Keep the old meal
+                        return m;
                     });
                     return { ...d, meals: updatedMeals };
                 }
-                return d; // Keep other days unchanged
-            })
-        );
+                return d;
+            });
+
+            // Recompute daily (today's meals) from updatedWeekly
+            const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+            const todayMeals = updatedWeekly.find(d => d.day.toLowerCase() === today.toLowerCase());
+
+            return {
+                weekly: updatedWeekly,
+                daily: todayMeals ? todayMeals.meals : []
+            };
+        });
     };
+
+
 
 
     return (
@@ -205,10 +228,10 @@ function MealPlanMain() {
                                 </div>
                             ) : (
                                 <div>
-                                <h2 className='text-[22px] font-bold px-4 pb-3 pt-5'>{day}</h2>
-                                {mealData.daily.map((meal, idx) => (
-                                    <MealDaySection key={idx} meals={[meal]} />
-                                ))}
+                                    <h2 className='text-[22px] font-bold px-4 pb-3 pt-5'>{day}</h2>
+                                    {mealData.daily.map((meal, idx) => (
+                                        <MealDaySection key={idx} meals={[meal]} />
+                                    ))}
                                 </div>
                             )
                         ) : (

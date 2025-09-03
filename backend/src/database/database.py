@@ -1,27 +1,3 @@
-# import mysql.connector
-# from mysql.connector import pooling
-
-# # Configure MySQL connection
-# dbconfig = {
-#     "host": "localhost",
-#     "user": "root",
-#     "password": "",
-#     "database": "lifelense"
-# }
-
-# # Connection pool
-# connection_pool = pooling.MySQLConnectionPool(pool_name="mypool", pool_size=5, **dbconfig)
-
-# def get_db():
-#     conn = connection_pool.get_connection()
-#     cursor = conn.cursor(dictionary=True)
-#     try:
-#         yield cursor, conn
-#     finally:
-#         cursor.close()
-#         conn.close()
-
-# database.py
 import aiomysql
 import asyncio
 from typing import Optional, Tuple

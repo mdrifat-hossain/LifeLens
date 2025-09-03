@@ -104,8 +104,6 @@ const MealChangeAndAlerts = ({ mealData, onUpdateMeal }) => {
                 setErrorDialog(res.reason); // show dialog
             } else if (res.status === "success" && res.data) {
 
-                console.log(res);
-
                 // res.data.nutrition is already an object, no need to parse
                 const nutrition = res.data.nutrition;
 
@@ -114,6 +112,8 @@ const MealChangeAndAlerts = ({ mealData, onUpdateMeal }) => {
                     details: `Calories: ${nutrition.calories} | Protein: ${nutrition.protein_g}g | Carbs: ${nutrition.carbs_g}g | Fat: ${nutrition.fat_g}g`,
                     image: "https://via.placeholder.com/150", // optional, replace with actual image if available
                 };
+
+                console.log(newMeal);
 
                 // Call the parent callback to update mealData
                 if (onUpdateMeal) {

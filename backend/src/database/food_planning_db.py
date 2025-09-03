@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 import json
-from datetime import timedelta, datetime
+from .redis_db.redis_cache_clear import clear_user_cache
+from .redis_db import redis_db_services
 
 # ✅ Delete old user meal info
 async def delete_old_user_meal_info(cursor, conn, user_id: str):
@@ -34,6 +35,10 @@ async def store_users_foodPlanning_info(cursor, conn, user_id: str, survey_data:
             survey_data.get("specific_diets"), survey_data.get("meal_plan")
         ))
         await conn.commit()
+
+        await clear_user_cache(user_id, "get_user_food_planning_info")
+        await redis_db_services.get_user_food_planning_info(user_id, cursor)
+
         return {"id": cursor.lastrowid}
     except Exception as e:
         await conn.rollback()
@@ -53,7 +58,7 @@ async def get_groceries_by_user(cursor, user_id: str):
 
 
 # ✅ Insert a new grocery
-async def add_grocery(cursor, conn, grocery_data: dict):
+async def add_grocery(cursor, conn, grocery_data: dict, user_id: str):
     try:
         await cursor.execute("""
             INSERT INTO available_groceries (user_id, grocery_name, available_amount, category, store_link, img_link)
@@ -64,6 +69,10 @@ async def add_grocery(cursor, conn, grocery_data: dict):
             grocery_data.get("store_link", ""), grocery_data.get("img_link", "")
         ))
         await conn.commit()
+
+        await clear_user_cache(user_id, "get_groceries_by_user")
+        await redis_db_services.get_groceries_by_user(user_id, cursor)
+
         return {"id": cursor.lastrowid}
     except Exception as e:
         await conn.rollback()
@@ -71,15 +80,18 @@ async def add_grocery(cursor, conn, grocery_data: dict):
 
 
 # ✅ Update grocery
-async def update_grocery(cursor, conn, grocery_id: int, updates: dict):
+async def update_grocery(cursor, conn, grocery_id: int, updates: dict, user_id:str):
     if not updates:
         return {"updated": 0}
-    # NOTE: consider whitelisting columns to avoid accidental/unsafe keys
     fields = ", ".join([f"{k}=%s" for k in updates.keys()])
     values = list(updates.values()) + [grocery_id]
     try:
         await cursor.execute(f"UPDATE available_groceries SET {fields} WHERE ID=%s", tuple(values))
         await conn.commit()
+
+        await clear_user_cache(user_id, "get_groceries_by_user")
+        await redis_db_services.get_groceries_by_user(user_id, cursor)
+
         return {"updated": cursor.rowcount}
     except Exception as e:
         await conn.rollback()
@@ -87,10 +99,14 @@ async def update_grocery(cursor, conn, grocery_id: int, updates: dict):
 
 
 # ✅ Delete grocery
-async def delete_grocery(cursor, conn, grocery_id: int):
+async def delete_grocery(cursor, conn, grocery_id: int, user_id: str):
     try:
         await cursor.execute("DELETE FROM available_groceries WHERE ID=%s", (grocery_id,))
         await conn.commit()
+
+        await clear_user_cache(user_id, "get_groceries_by_user")
+        await redis_db_services.get_groceries_by_user(user_id, cursor)
+
         return {"deleted": cursor.rowcount}
     except Exception as e:
         await conn.rollback()
@@ -113,6 +129,11 @@ async def add_meal_plan(cursor, conn, meal_data: dict):
             json.dumps(meal_data["ingredients_used"])
         ))
         await conn.commit()
+
+        user_id = meal_data["user_id"]
+        await clear_user_cache(user_id, "get_meal_plan")
+        await redis_db_services.get_meal_plan(user_id, cursor)
+
         return {"id": cursor.lastrowid}
     except Exception as e:
         await conn.rollback()
@@ -136,6 +157,11 @@ async def add_meal_plan_many(cursor, conn, rows: list[dict]):
             VALUES (%s,%s,%s,%s,%s,%s,%s)
         """, values)
         await conn.commit()
+
+        user_id = m["user_id"]
+        await clear_user_cache(user_id, "get_meal_plan")
+        await redis_db_services.get_meal_plan(user_id, cursor)
+
         return {"inserted": cursor.rowcount}
     except Exception as e:
         await conn.rollback()
@@ -162,6 +188,10 @@ async def change_meal(cursor, conn, user_id: str, meal_data: dict):
             meal_data["meal_type"]
         ))
         await conn.commit()
+
+        await clear_user_cache(user_id, "get_meal_plan")
+        await redis_db_services.get_meal_plan(user_id, cursor)
+
         return {"status": "updated"}
     except Exception as e:
         await conn.rollback()
@@ -173,6 +203,9 @@ async def delete_all_meal(cursor, conn, user_id: str):
     try:
         await cursor.execute("DELETE FROM meal_plan WHERE user_id=%s", (user_id,))
         await conn.commit()
+
+        await clear_user_cache(user_id, "get_meal_plan")
+
         return {"deleted": cursor.rowcount}
     except Exception as e:
         await conn.rollback()
@@ -181,6 +214,7 @@ async def delete_all_meal(cursor, conn, user_id: str):
 
 # ✅ Get meal plan by user
 async def get_meal_plan(cursor, user_id: str):
+    print("🤖")
     await cursor.execute("SELECT * FROM meal_plan WHERE user_id = %s", (user_id,))
     return await cursor.fetchall()
 
@@ -190,6 +224,9 @@ async def delete_all_health_alert(cursor, conn, user_id: str):
     try:
         await cursor.execute("DELETE FROM health_alert WHERE user_id=%s", (user_id,))
         await conn.commit()
+
+        await clear_user_cache(user_id, "get_health_alert")
+
         return {"deleted": cursor.rowcount}
     except Exception as e:
         await conn.rollback()
@@ -205,6 +242,10 @@ async def insert_health_alert(cursor, conn, user_id: str, alert: dict):
             VALUES (%s, %s)
         """, (user_id, alert_json))
         await conn.commit()
+
+        await clear_user_cache(user_id, "get_health_alert")
+        await redis_db_services.get_health_alert(user_id, cursor)
+
         return {"id": cursor.lastrowid}
     except Exception as e:
         await conn.rollback()
@@ -216,67 +257,23 @@ async def get_health_alert(cursor, user_id: str):
     await cursor.execute("SELECT * FROM health_alert WHERE user_id = %s", (user_id,))
     return await cursor.fetchall()
 
-#####Rifat
-# ✅ Store weekly routine
-async def store_weekly_routine(cursor, conn, user_id, routine_data):
-    query = """
-        INSERT INTO weekly_routines (user_id, routine_name, start_time, end_time, color, description)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """
-    await cursor.execute(query, (
-        user_id,
-        routine_data["routine_name"],
-        routine_data["startTime"],
-        routine_data["endTime"],
-        routine_data["color"],
-        routine_data["description"]
-    ))
-    await conn.commit()
-    return cursor.lastrowid   # return routine_id
 
 
-# ✅ Store routine days
-async def store_routine_days(cursor, conn, routine_id, selected_days):
-    query = "INSERT INTO routine_days (routine_id, day_of_week) VALUES (%s, %s)"
-    for day in selected_days:
-        await cursor.execute(query, (routine_id, day))
-    await conn.commit()
+##Rifat Edits
+async def store_grocery_list(cursor, conn, user_id, list_name, total_price, items):
+    try:
+        # Insert grocery list
+        query = "INSERT INTO grocery_list (user_id, list_name, total_price) VALUES (%s, %s, %s)"
+        await cursor.execute(query, (user_id, list_name, total_price))
+        list_id = cursor.lastrowid
 
+        # Insert grocery items
+        item_query = "INSERT INTO grocery_items (list_id, name, quantity, price) VALUES (%s, %s, %s, %s)"
+        for item in items:
+            await cursor.execute(item_query, (list_id, item.name, item.quantity, item.price))
 
-
-async def get_user_routines(cursor, user_id):
-    query = """
-            SELECT r.routine_id, r.routine_name, r.start_time, r.end_time, r.color, r.description,
-                   GROUP_CONCAT(d.day_of_week) as days
-            FROM weekly_routines r
-            LEFT JOIN routine_days d ON r.routine_id = d.routine_id
-            WHERE r.user_id = %s
-            GROUP BY r.routine_id
-    """
-    await cursor.execute(query, (user_id,))
-    rows = await cursor.fetchall()
-    
-    routines = []
-    for row in rows:
-        def format_time(value):
-            if value is None:
-                return None
-            if isinstance(value, timedelta):
-                # Convert timedelta to HH:MM format
-                total_seconds = value.seconds
-                hours = total_seconds // 3600
-                minutes = (total_seconds % 3600) // 60
-                return f"{hours:02}:{minutes:02}"
-            return str(value)
-
-        routines.append({
-            "routine_id": row["routine_id"],
-            "routine_name": row["routine_name"],
-            "start_time": format_time(row["start_time"]),
-            "end_time": format_time(row["end_time"]),
-            "color": row["color"],
-            "description": row["description"],
-            "days": row["days"].split(",") if row["days"] else []
-        })
-    return routines
-
+        await conn.commit()
+        return list_id
+    except Exception as e:
+        await conn.rollback()
+        raise e

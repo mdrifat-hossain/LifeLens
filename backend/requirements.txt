@@ -9,5 +9,11 @@ BeautifulSoup4
 playwright
 langchain
 langchain-google-genai
-# mysql-connector-python
+langchain-community
 aiomysql
+redis 
+fastapi-cache2
+chromadb
+google-generativeai
+langchain-chroma
+sentence-transformers

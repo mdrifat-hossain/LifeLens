@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import request_manager
+from .routes import request_manager, chat, routine
 from .database.database import init_pool, close_pool
+from .database.redis_db.redis_initialization import init_cache
 
 app = FastAPI()
 
@@ -14,12 +15,15 @@ app.add_middleware(
 )
 
 @app.on_event("startup")
-async def _startup():
+async def startup():
     await init_pool()
+    await init_cache()  # initialize Redis
 
 @app.on_event("shutdown")
-async def _shutdown():
+async def shutdown():
     await close_pool()
 
 app.include_router(request_manager.router, prefix="/api")
+app.include_router(chat.router, prefix="/api")
+app.include_router(routine.router, prefix="/api")
 # app.include_router(webhooks.router, prefix="/webhooks")

@@ -13,6 +13,7 @@
     "@clerk/clerk-react": "^5.39.0",
     "@tailwindcss/vite": "^4.1.11",
     "chart.js": "^4.5.0",
+    "framer-motion": "^12.23.12",
     "highcharts": "^12.3.0",
     "highcharts-react-official": "^3.2.2",
     "ldrs": "^1.1.7",

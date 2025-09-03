@@ -1,9 +1,164 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useApi } from "../../utils/api";
+import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
+
 
 function RoutineDashboard() {
     const [taskChecked, taskSetChecked] = useState(false);
+    const [routines, setRoutines] = useState([]);
+    const [completed, setCompleted] = useState({}); // <-- here
+    const { makeRequest } = useApi();
+    const [tasks, setTasks] = useState([]);
+    const [newTask, setNewTask] = useState("");
+    const [showForm, setShowForm] = useState(false);
+    const [time, setTime] = useState(new Date());
+    const [isOpen, setIsOpen] = useState(false);
+
+
+    const dayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const shortDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const today = shortDays[new Date().getDay()];
+
+    // useEffect(() => {
+    //     const newCompleted = {};
+    //     todaysRoutines.forEach(task => {
+    //         newCompleted[task.routine_id] = task.completed; // or false if missing
+    //     });
+    //     setCompleted(newCompleted);
+    // }, [todaysRoutines]);
+
+    // Fetch tasks from DB on mount
+
+
+    // Update clock every minute
+    useEffect(() => {
+        const timer = setInterval(() => setTime(new Date()), 60000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Task stats
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter((t) => t.completed).length;
+    const taskCompletion = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+    // Current routine
+    const currentRoutine = routines.find((r) => {
+        const now = time.getHours() * 60 + time.getMinutes(); // minutes of day
+        const [startHour, startMin] = r.start_time.split(":").map(Number);
+        const [endHour, endMin] = r.end_time.split(":").map(Number);
+
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+
+        return now >= startMinutes && now <= endMinutes;
+    });
+
+    // Time left in the day (till midnight)
+    const minutesLeft = (24 * 60) - (time.getHours() * 60 + time.getMinutes());
+    const hoursLeft = Math.floor(minutesLeft / 60);
+    const minsLeft = minutesLeft % 60;
+
+
+    useEffect(() => {
+        const fetchTasks = async () => {
+            try {
+                const res = await makeRequest("get_tasks", { method: "GET" });
+                setTasks(res.tasks || []);
+            } catch (err) {
+                console.error("Error fetching tasks:", err);
+            }
+        };
+        fetchTasks();
+    }, []);
+
+    // Add new task
+    const handleAddTask = async () => {
+        if (!newTask.trim()) return;
+
+        try {
+            const res = await makeRequest("add_task", {
+                method: "POST",
+                body: JSON.stringify({ task_name: newTask }),
+            });
+            // Add to local state
+            setTasks((prev) => [...prev, res.task]);
+            setNewTask("");
+            setShowForm(false);
+        } catch (err) {
+            console.error("Error adding task:", err);
+        }
+    };
+
+
+    // Toggle complete
+    const handleToggleComplete = async (taskId) => {
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.task_id === taskId ? { ...task, completed: !task.completed } : task
+            )
+        );
+        try {
+            await makeRequest(`toggle_task/${taskId}`, { method: "PATCH" });
+        } catch (err) {
+            console.error("Error toggling task:", err);
+        }
+    };
+
+    // Remove task
+    const handleRemoveTask = async (taskId) => {
+        setTasks((prev) => prev.filter((task) => task.task_id !== taskId));
+        try {
+            await makeRequest(`delete_task/${taskId}`, { method: "DELETE" });
+        } catch (err) {
+            console.error("Error deleting task:", err);
+        }
+    };
+
+
+    const colorClasses = {
+        purple: "bg-purple-100 text-purple-700",
+        pink: "bg-pink-100 text-pink-700",
+        green: "bg-green-100 text-green-700",
+        yellow: "bg-yellow-100 text-yellow-700",
+        blue: "bg-blue-100 text-blue-700",
+        indigo: "bg-indigo-100 text-indigo-700",
+    };
+
+    useEffect(() => {
+        const fetchRoutines = async () => {
+            try {
+                const res = await makeRequest("get_routines", { method: "GET" });
+                setRoutines(res.routines || []);
+                console.log(res.routines);
+            } catch (err) {
+                console.error("Error fetching routines:", err);
+            }
+        };
+
+        fetchRoutines();
+    }, []);
+
+    // group routines by day
+    const routinesByDay = dayOrder.reduce((acc, day) => {
+        const shortDay = day.slice(0, 3); // "Mon", "Tue", "Sun"
+        acc[day] = routines.filter(r => r.days.includes(shortDay));
+        return acc;
+    }, {});
+
+    const todaysRoutines = routines.filter(r => r.days.includes(today));
+
+    const handleCheckboxChange = (id) => {
+        setCompleted((prev) => ({
+            ...prev,
+            [id]: !prev[id], // toggle completion
+        }));
+    };
+
+
+
+
     return (
         <div className="flex-grow p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
@@ -24,74 +179,98 @@ function RoutineDashboard() {
                             </button>
                         </Link>
                     </div>
-                    <div className="mt-4 ">
+                    <div className="mt-4">
+                        <div className="border-2 border-gray-200 rounded-lg">
+                            <div
+                                className="p-4 flex justify-between items-center cursor-pointer bg-gray-100 hover:bg-gray-200 transition duration-200 rounded-lg"
+                                onClick={() => setIsOpen(!isOpen)}
+                            >
+                                <span className="tracking-wider">View Full Weekly Schedule</span>
+                                {isOpen ? (
+                                    <IoIosArrowUp className="text-gray-600" />
+                                ) : (
+                                    <IoIosArrowDown className="text-gray-600" />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Weekly Schedule Grid with smooth transition */}
+                    <div
+                        className={`transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? "max-h-[1000px] opacity-100 mt-6" : "max-h-0 opacity-0"
+                            }`}
+                    >
+                        <div className="border-2 border-gray-200 rounded-lg p-4">
+                            <div className="grid grid-cols-7 gap-2 text-center text-sm">
+                                {dayOrder.map((day) => {
+                                    const isToday =
+                                        day === new Date().toLocaleDateString("en-US", {
+                                            weekday: "long",
+                                        });
+                                    return (
+                                        <div
+                                            key={day}
+                                            className={`p-2 rounded-lg ${isToday ? "bg-green-100" : ""}`}
+                                        >
+                                            <p className="font-medium text-gray-600">{day.slice(0, 3)}</p>
+                                            {routinesByDay[day]?.map((routine) => (
+                                                <div
+                                                    key={routine.routine_id}
+                                                    className={`${colorClasses[routine.color] ||
+                                                        "bg-gray-100 text-gray-700"
+                                                        } py-1 mt-1 rounded-md`}
+                                                >
+                                                    {routine.routine_name} {routine.start_time} -{" "}
+                                                    {routine.end_time}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                    {/* <div className="mt-4 ">
                         <div className="border-2 border-gray-200 rounded-lg">
                             <div
                                 className="p-4 flex justify-between items-center cursor-pointer bg-gray-100 hover:bg-gray-200 transition duration-200 rounded-lg"
                             >
                                 <span className="tracking-wider">View Full Weekly Schedule</span>
-                                <svg className="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 9-7 7-7-7" />
-                                </svg>
+                                <IoIosArrowDown className="text-gray-600" />
 
                             </div>
                         </div>
                     </div>
                     <div className="mt-6 border-2 border-gray-200 rounded-lg p-4">
                         <div className="grid grid-cols-7 gap-2 text-center text-sm">
-                            <div><p className="font-medium text-gray-600">Mon</p></div>
-                            <div><p className="font-medium text-gray-600">Tue</p></div>
-                            <div><p className="font-medium text-gray-600">Wed</p></div>
-                            <div><p className="font-medium text-gray-600">Thu</p></div>
-                            <div><p className="font-medium text-gray-600">Fri</p></div>
-                            <div><p className="font-medium text-gray-600">Sat</p></div>
-                            <div><p className="font-medium text-gray-600">Sun</p></div>
-                            <div className="bg-purple-100 text-purple-700 py-1 rounded-md">
-                                Gym 6AM
-                            </div>
-                            <div className="bg-pink-100 text-pink-700 py-1 rounded-md">
-                                Yoga 7AM
-                            </div>
-                            <div className="bg-purple-100 text-purple-700 py-1 rounded-md">
-                                Gym 6AM
-                            </div>
-                            <div className="bg-pink-100 text-pink-700 py-1 rounded-md">
-                                Yoga 7AM
-                            </div>
-                            <div className="bg-purple-100 text-purple-700 py-1 rounded-md">
-                                Gym 6AM
-                            </div>
-                            <div className="bg-yellow-100 text-yellow-700 py-1 rounded-md">
-                                Rest
-                            </div>
-                            <div className="bg-yellow-100 text-yellow-700 py-1 rounded-md">
-                                Rest
-                            </div>
-                            <div className="bg-green-100 text-green-700 py-1 rounded-md">
-                                Work 9AM
-                            </div>
-                            <div className="bg-green-100 text-green-700 py-1 rounded-md">
-                                Work 9AM
-                            </div>
-                            <div className="bg-green-100 text-green-700 py-1 rounded-md">
-                                Work 9AM
-                            </div>
-                            <div className="bg-green-100 text-green-700 py-1 rounded-md">
-                                Work 9AM
-                            </div>
-                            <div className="bg-green-100 text-green-700 py-1 rounded-md">
-                                Work 9AM
-                            </div>
-                            <div className="bg-blue-100 text-blue-700 py-1 rounded-md">Family</div>
-                            <div className="bg-indigo-100 text-indigo-700 py-1 rounded-md">
-                                Hobby
-                            </div>
+                            {dayOrder.map((day) => {
+                                const isToday = day === new Date().toLocaleDateString("en-US", { weekday: "long" });
+                                return (
+                                    <div
+                                        key={day}
+                                        className={`p-2 rounded-lg ${isToday ? "bg-green-100" : ""}`}
+                                    >
+                                        <p className="font-medium text-gray-600">{day.slice(0, 3)}</p>
+                                        {routinesByDay[day]?.map((routine) => (
+                                            <div
+                                                key={routine.routine_id}
+                                                className={`${colorClasses[routine.color] || "bg-gray-100 text-gray-700"} py-1 mt-1 rounded-md`}
+                                            >
+                                                {routine.routine_name} {routine.start_time} - {routine.end_time}
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })}
                         </div>
-                    </div>
+                    </div> */}
+
+
+
 
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-lg shadow-sm lg:col-span-1">
+                    {/* <div className="bg-white p-6 rounded-lg shadow-sm lg:col-span-1">
                         <h3 className="font-semibold text-gray-800">Today's Progress</h3>
                         <div className="mt-4 flex items-start space-x-4">
                             <div className="flex flex-col items-center">
@@ -99,12 +278,12 @@ function RoutineDashboard() {
                                     className="bg-indigo-600 text-white h-10 w-10 rounded-full flex items-center justify-center"
                                 >
                                     <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                                        <path fill-rule="evenodd" d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm11-4a1 1 0 1 0-2 0v4a1 1 0 0 0 .293.707l3 3a1 1 0 0 0 1.414-1.414L13 11.586V8Z" clip-rule="evenodd" />
+                                        <path fillRule="evenodd" d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm11-4a1 1 0 1 0-2 0v4a1 1 0 0 0 .293.707l3 3a1 1 0 0 0 1.414-1.414L13 11.586V8Z" clipRule="evenodd" />
                                     </svg>
 
                                 </div>
                                 <svg className="mt-10 h-10 w-10 text-gray-800 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                                    <path fill-rule="evenodd" d="M12 20a7.966 7.966 0 0 1-5.002-1.756l.002.001v-.683c0-1.794 1.492-3.25 3.333-3.25h3.334c1.84 0 3.333 1.456 3.333 3.25v.683A7.966 7.966 0 0 1 12 20ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10c0 5.5-4.44 9.963-9.932 10h-.138C6.438 21.962 2 17.5 2 12Zm10-5c-1.84 0-3.333 1.455-3.333 3.25S10.159 13.5 12 13.5c1.84 0 3.333-1.455 3.333-3.25S13.841 7 12 7Z" clip-rule="evenodd" />
+                                    <path fillRule="evenodd" d="M12 20a7.966 7.966 0 0 1-5.002-1.756l.002.001v-.683c0-1.794 1.492-3.25 3.333-3.25h3.334c1.84 0 3.333 1.456 3.333 3.25v.683A7.966 7.966 0 0 1 12 20ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10c0 5.5-4.44 9.963-9.932 10h-.138C6.438 21.962 2 17.5 2 12Zm10-5c-1.84 0-3.333 1.455-3.333 3.25S10.159 13.5 12 13.5c1.84 0 3.333-1.455 3.333-3.25S13.841 7 12 7Z" clipRule="evenodd" />
                                 </svg>
                                 <div className="w-1 h-50 bg-indigo-200 mt-2 rounded-2xl">
                                     <div className="h-[65%] bg-indigo-500 rounded-2xl">
@@ -145,8 +324,153 @@ function RoutineDashboard() {
                                 </div>
                             </div>
                         </div>
+                    </div> */}
+                    <div className="bg-white p-6 rounded-lg shadow-sm lg:col-span-1">
+                        <h3 className="font-semibold text-gray-800">Today's Progress</h3>
+                        <div className="mt-4 flex items-start space-x-4">
+                            {/* Left vertical bar */}
+                            <div className="flex flex-col items-center">
+                                {/* Top icon */}
+                                <div className="bg-indigo-600 text-white h-10 w-10 rounded-full flex items-center justify-center">
+                                    <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 7v5l3 3" />
+                                    </svg>
+                                </div>
+
+                                {/* Vertical progress bar */}
+                                <div className="w-1 h-48 bg-indigo-200 mt-4 rounded-2xl relative">
+                                    <div
+                                        className="bg-indigo-500 rounded-2xl absolute bottom-0 w-1"
+                                        style={{ height: `${taskCompletion}%` }}
+                                    ></div>
+                                </div>
+
+                                {/* Bottom icon */}
+                                <svg className="mt-4 h-10 w-10 text-gray-800" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                    <path fillRule="evenodd" d="M12 20a7.966 7.966 0 0 1-5-2v-1c0-2 1.5-3 3-3h4c1.5 0 3 1 3 3v1a7.966 7.966 0 0 1-5 2zM12 7c-2 0-3.5 1.5-3.5 3.5S10 14 12 14s3.5-1.5 3.5-3.5S14 7 12 7z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+
+                            {/* Right side info */}
+                            <div className="flex-1">
+                                {/* Current time */}
+                                <p className="text-3xl font-bold text-gray-900">
+                                    {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                    {time.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                                </p>
+
+                                {/* Task completion */}
+                                <div className="mt-6">
+                                    <p className="text-center text-3xl font-bold text-indigo-500">
+                                        {Math.round(taskCompletion)}%
+                                    </p>
+                                    <p className="text-center text-sm text-gray-500">Day Complete</p>
+
+                                    <div className="flex justify-between items-center text-sm mb-1">
+                                        <p className="text-gray-600">Tasks Done</p>
+                                        <p className="font-medium text-gray-800">
+                                            {completedTasks}/{totalTasks}
+                                        </p>
+                                    </div>
+
+                                    {/* Horizontal progress bar */}
+                                    <div className="bg-gray-200 rounded-full h-2 w-full">
+                                        <div
+                                            className="bg-indigo-500 h-2 rounded-full"
+                                            style={{ width: `${taskCompletion}%` }}
+                                        ></div>
+                                    </div>
+
+                                    {/* Current routine */}
+                                    <div className="mt-6 text-sm text-center">
+                                        {currentRoutine ? (
+                                            <p className="text-gray-700">
+                                                Now: <span className="font-medium">{currentRoutine.routine_name}</span> (
+                                                {currentRoutine.start_time}–{currentRoutine.end_time})
+                                            </p>
+                                        ) : (
+                                            <p className="text-gray-500">No routine right now</p>
+                                        )}
+                                        {/* Time left in the day */}
+                                        <p className="mt-2 text-gray-600">
+                                            ⏳ Time left today:{" "}
+                                            <span className="font-medium">{hoursLeft}h {minsLeft}m</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow-sm lg:col-span-1">
+                        <h3 className="font-semibold text-gray-800">Today's Routine</h3>
+                        <div className="space-y-4 mt-4">
+                            {todaysRoutines.length > 0 ? (
+                                todaysRoutines.map((routine) => {
+                                    const isCompleted = completed[routine.routine_id] || false;
+
+                                    // ⏰ Parse routine end time (assuming format HH:MM)
+                                    const now = new Date();
+                                    const [endHour, endMinute] = routine.end_time.split(":").map(Number);
+                                    const routineEnd = new Date();
+                                    routineEnd.setHours(endHour, endMinute, 0, 0);
+
+                                    const isOverdue = now > routineEnd && !isCompleted;
+
+                                    return (
+                                        <div
+                                            key={routine.routine_id}
+                                            className={`border p-3 rounded-lg flex items-center justify-between 
+              ${isCompleted
+                                                    ? "bg-green-50 border-green-200"
+                                                    : isOverdue
+                                                        ? "bg-red-50 border-red-200"
+                                                        : "bg-gray-50 border-gray-200"
+                                                }`}
+                                        >
+                                            <div className="flex items-center space-x-3">
+                                                <div className="bg-gray-100 rounded-md p-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isCompleted}
+                                                        onChange={() => handleCheckboxChange(routine.routine_id)}
+                                                        className="h-4 w-4 text-green-600 border-green-300 rounded focus:ring-green-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-gray-800">
+                                                        {routine.routine_name}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500">
+                                                        {routine.start_time} - {routine.end_time}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {isCompleted ? (
+                                                <div className="bg-green-500 text-white h-6 w-6 rounded-full flex items-center justify-center">
+                                                    ✅
+                                                </div>
+                                            ) : isOverdue ? (
+                                                <div className="bg-red-500 text-white h-6 w-6 rounded-full flex items-center justify-center">
+                                                    ❌
+                                                </div>
+                                            ) : (
+                                                <div className="bg-gray-400 text-white h-6 w-6 rounded-full flex items-center justify-center">
+                                                    ⏳
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <p className="text-gray-500">No routines for today 🎉</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* <div className="bg-white p-6 rounded-lg shadow-sm lg:col-span-1">
                         <h3 className="font-semibold text-gray-800">Today's Routine</h3>
                         <div className="space-y-4 mt-4">
                             <div
@@ -272,9 +596,9 @@ function RoutineDashboard() {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> */}
                     <div className="space-y-6 lg:col-span-1">
-                        <div className="bg-white p-6 rounded-lg shadow-sm">
+                        {/* <div className="bg-white p-6 rounded-lg shadow-sm">
                             <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-blue-500">Today's Tasks</h3>
                                 <a className="text-indigo-600 hover:text-indigo-800" href="#">
@@ -349,6 +673,68 @@ function RoutineDashboard() {
 
                                     </button>
                                 </div>
+                            </div>
+                        </div> */}
+                        <div className="bg-white p-6 rounded-lg shadow-sm">
+                            <div className="flex justify-between items-center">
+                                <h3 className="font-semibold text-blue-500">Today's Tasks</h3>
+                                <button
+                                    className="text-indigo-600 hover:text-indigo-800"
+                                    onClick={() => setShowForm(!showForm)}
+                                >
+                                    ➕
+                                </button>
+                            </div>
+
+                            {showForm && (
+                                <div className="flex items-center space-x-2 mt-4">
+                                    <input
+                                        value={newTask}
+                                        onChange={(e) => setNewTask(e.target.value)}
+                                        className="flex-1 p-2 border rounded focus:outline-none"
+                                        placeholder="Enter new task..."
+                                    />
+                                    <button
+                                        onClick={handleAddTask}
+                                        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className="space-y-4 mt-4">
+                                {tasks.length > 0 ? (
+                                    tasks.map((task) => (
+                                        <div
+                                            key={task.task_id}
+                                            className="flex items-center justify-between bg-gray-50 p-3 rounded"
+                                        >
+                                            <div className="flex items-center space-x-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={task.completed}
+                                                    onChange={() => handleToggleComplete(task.task_id)}
+                                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <label
+                                                    className={`text-gray-800 ${task.completed ? "line-through text-gray-500" : ""
+                                                        }`}
+                                                >
+                                                    {task.task_name}
+                                                </label>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRemoveTask(task.task_id)}
+                                                className="text-red-500 hover:text-red-700"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500">No tasks for today 🎉</p>
+                                )}
                             </div>
                         </div>
                         <div className="bg-indigo-50 p-6 rounded-lg">
