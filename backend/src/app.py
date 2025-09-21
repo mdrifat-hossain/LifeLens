@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import food_planning, chat, routine
+from .routes import food_planning, chat, routine, account
 from .database.database import init_pool, close_pool
 from .database.redis_db.redis_initialization import init_cache
 
@@ -28,4 +28,5 @@ async def shutdown():
 app.include_router(food_planning.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 app.include_router(routine.router, prefix="/api")
+app.include_router(account.router, prefix="/api")
 # app.include_router(webhooks.router, prefix="/webhooks")

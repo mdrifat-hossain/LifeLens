@@ -1,6 +1,11 @@
 
-import { useEffect } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useApi } from "../../utils/api";
+// import {useEffect } from "react";
 import Highcharts from "highcharts";
+// import { useState } from "react";
+import { useState, useEffect } from 'react'
+
 import { MdAccountBalanceWallet } from "react-icons/md";
 import { FaArrowUp } from "react-icons/fa";
 import { FaArrowDown } from "react-icons/fa";
@@ -12,6 +17,8 @@ import { MdReport } from "react-icons/md";
 import { IoMdAdd } from "react-icons/io";
 
 function FinancialDashboard() {
+
+    const { makeRequest } = useApi();
 
     useEffect(() => {
         Highcharts.chart("pie-chart", {
@@ -63,6 +70,124 @@ function FinancialDashboard() {
         });
     }, []);
 
+    const [accounts, setAccounts] = useState([]);
+    const [accountName, setAccountName] = useState("");
+    const [balance, setBalance] = useState("");
+
+    // fetch accounts
+    useEffect(() => {
+        const fetchAccounts = async () => {
+            try {
+                const res = await makeRequest("get-accounts", { method: "GET" });
+                setAccounts(res.accounts || []);
+            } catch (err) {
+                console.error("Error fetching accounts:", err);
+            }
+        };
+        fetchAccounts();
+    }, []);
+
+    // add account
+    const handleAddAccount = async () => {
+        if (!accountName) return;
+
+        try {
+            const res = await makeRequest("add-account", {
+                method: "POST",
+                body: JSON.stringify({
+                    accountName,
+                    balance: parseFloat(balance) || 0,
+                }),
+            });
+
+            setAccounts([...accounts, res]);
+            setAccountName("");
+            setBalance("");
+        } catch (err) {
+            console.error("Error adding account:", err);
+        }
+    };
+
+    const [transactionName, setTransactionName] = useState("");
+    const [amount, setAmount] = useState("");
+    const [accountId, setAccountId] = useState("");
+    const [categoryId, setCategoryId] = useState("");
+    // const [accounts, setAccounts] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [type, setType] = useState("");
+
+    const defaultCategories = [
+        { category_id: 1, category_name: "Food" },
+        { category_id: 2, category_name: "Transport" },
+        { category_id: 3, category_name: "Entertainment" },
+        { category_id: 4, category_name: "Shopping" },
+        { category_id: 5, category_name: "Other" },
+    ];
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch accounts
+                const accRes = await makeRequest("get-accounts", { method: "GET" });
+                setAccounts(accRes.accounts || []);
+
+                setCategories(defaultCategories);
+
+                // Fetch categories
+                // const catRes = await makeRequest("get-categories", { method: "GET" });
+                // if (catRes.categories && catRes.categories.length > 0) {
+                //     setCategories(catRes.categories);
+                // } else {
+                //     setCategories(defaultCategories); // ← this will set the defaults
+                // }
+
+            } catch (err) {
+                console.error("Error fetching accounts or categories:", err);
+                setCategories(defaultCategories);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    const handleAddTransaction = async () => {
+        if (!transactionName || !amount || !accountId || !categoryId || !type) {
+            alert("Please fill all fields");
+            return;
+        }
+
+        console.log({
+            transactionName,
+            amount: parseFloat(amount),
+            accountId: parseInt(accountId),
+            categoryId: parseInt(categoryId),
+            type,
+        });
+
+        try {
+            await makeRequest("add-transaction", {
+                method: "POST",
+                body: JSON.stringify({
+                    description: transactionName,
+                    amount: parseFloat(amount),
+                    accountId: parseInt(accountId),
+                    type: type
+                }),
+            });
+
+            // Reset form
+            setTransactionName("");
+            setAmount("");
+            setAccountId("");
+            setCategoryId("");
+            setType("");
+            alert("Transaction added successfully!");
+        } catch (err) {
+            console.error("Error adding transaction:", err);
+        }
+    };
+
+
     return (
         <div className="max-w-7xl mx-auto mt-5">
             <header className="flex justify-between items-center mb-8">
@@ -70,12 +195,120 @@ function FinancialDashboard() {
                     <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Dashboard</h1>
                     <p className="text-gray-500 dark:text-dark-text/50">Welcome back! Here's your financial overview</p>
                 </div>
-                <div className="flex items-center space-x-4">
-                    <button className="flex items-center font-semibold cursor-pointer bg-primary text-light-text px-4 py-2 rounded-lg shadow hover:bg-primary/90">
-                        <IoMdAdd className="mr-2" size={20} />
-                        Add Transaction
-                    </button>
-                    
+                <div className="flex justify-between items-center mb-6">
+                    <Dialog.Root>
+                        <Dialog.Trigger asChild>
+                            <button className="flex items-center font-semibold cursor-pointer bg-primary text-light-text px-4 py-2 rounded-lg shadow hover:bg-primary/90">
+                                <IoMdAdd className="mr-2" size={20} />
+                                Add Transaction
+                            </button>
+                        </Dialog.Trigger>
+
+                        <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" />
+
+                        <Dialog.Content className="fixed top-1/2 left-1/2 w-[400px] -translate-x-1/2 -translate-y-1/2 bg-light-background dark:bg-dark-background p-6 rounded-xl shadow-lg text-light-text dark:text-dark-text z-50">
+                            <Dialog.Title className="text-lg font-bold mb-4">Add Transaction</Dialog.Title>
+
+                            <div className="mb-4">
+                                <label className="block text-sm mb-1">Transaction Name</label>
+                                <input
+                                    type="text"
+                                    className="w-full border rounded-lg px-3 py-2"
+                                    value={transactionName}
+                                    onChange={(e) => setTransactionName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-sm mb-1">Amount</label>
+                                <input
+                                    type="number"
+                                    className="w-full border rounded-lg px-3 py-2"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-sm mb-1">Account</label>
+                                <select
+                                    value={accountId}
+                                    onChange={(e) => setAccountId(e.target.value)}
+                                    className="w-full border rounded-lg px-3 py-2
+             bg-light-background text-light-text
+             dark:bg-dark-background dark:text-dark-text
+             focus:outline-none focus:ring-2 focus:ring-primary"
+                                >
+                                    <option value="">Select Account</option>
+                                    {accounts.map((acc) => (
+                                        <option
+                                            key={acc.account_id}
+                                            value={acc.account_id}
+                                            className="bg-light-background text-light-text dark:bg-light-background/20 dark:text-dark-text"
+                                        >
+                                            {acc.account_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-sm mb-1">Type</label>
+                                <select
+                                    value={type}
+                                    onChange={(e) => setType(e.target.value)}
+                                    className="w-full border rounded-lg px-3 py-2
+               bg-light-background text-light-text
+               dark:bg-dark-background dark:text-dark-text
+               focus:outline-none focus:ring-2 focus:ring-primary"
+                                >
+                                    <option value="">Select Type</option>
+                                    <option value="CREDIT">Credit</option>
+                                    <option value="DEBIT">Debit</option>
+                                </select>
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-sm mb-1">Category</label>
+                                <select
+                                    value={categoryId}
+                                    onChange={(e) => setCategoryId(e.target.value)}
+                                    className="w-full border rounded-lg px-3 py-2
+             bg-light-background text-light-text
+             dark:bg-dark-background dark:text-dark-text
+             focus:outline-none focus:ring-2 focus:ring-primary"
+                                >
+                                    <option value="">Select Category</option>
+                                    {categories.map((cat) => (
+                                        <option
+                                            key={cat.category_id}
+                                            value={cat.category_id}
+                                            className="bg-light-background text-light-text dark:bg-light-background/20 dark:text-dark-text"
+                                        >
+                                            {cat.category_name}
+                                        </option>
+                                    ))}
+                                </select>
+
+
+                            </div>
+
+                            <div className="flex justify-end space-x-3">
+                                <Dialog.Close asChild>
+                                    <button className="px-4 py-2 rounded-lg border">Cancel</button>
+                                </Dialog.Close>
+                                <Dialog.Close asChild>
+                                    <button
+                                        onClick={handleAddTransaction}
+                                        className="px-4 py-2 rounded-lg bg-primary text-light-text dark:text-dark-text"
+                                    >
+                                        Save
+                                    </button>
+                                </Dialog.Close>
+                            </div>
+                        </Dialog.Content>
+                    </Dialog.Root>
+
                 </div>
             </header>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -257,47 +490,94 @@ function FinancialDashboard() {
                     <div className="bg-light-background dark:bg-dark-background border-1 border-accent/70 text-light-text dark:text-dark-text p-6 rounded-lg shadow-lg">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-semibold">Your Accounts</h2>
-                            <button
-                                className="flex items-center bg-primary font-semibold py-2 px-4 rounded-lg hover:bg-primary/70 text-light-text focus:outline-none cursor-pointer">
-                                <IoMdAdd className="mr-2" size={20}/>
-                                Add Account
-                            </button>
+
+                            {/* Dialog for Add Account */}
+                            <Dialog.Root>
+                                <Dialog.Trigger asChild>
+                                    <button className="flex items-center bg-primary font-semibold py-2 px-4 rounded-lg hover:bg-primary/70 text-light-text dark:text-dark-text cursor-pointer">
+                                        <IoMdAdd className="mr-2" size={20} /> Add Account
+                                    </button>
+                                </Dialog.Trigger>
+
+                                {/* Overlay */}
+                                <Dialog.Overlay
+                                    className="
+                                        fixed inset-0 
+                                        bg-black/40 
+                                        backdrop-blur-sm 
+                                        dark:bg-black/60
+                                        "
+                                />
+
+                                {/* Dialog content */}
+                                <Dialog.Content
+                                    className="
+                                        fixed top-1/2 left-1/2 
+                                        w-[400px] 
+                                        -translate-x-1/2 -translate-y-1/2
+                                        rounded-xl 
+                                        p-6 
+                                        shadow-lg 
+                                        bg-light-background 
+                                        text-light-text 
+                                        dark:bg-dark-background 
+                                        dark:text-dark-text
+                                        "
+                                >
+                                    <Dialog.Title className="text-lg font-bold mb-4">Add New Account</Dialog.Title>
+
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium mb-1">Account Name</label>
+                                        <input
+                                            type="text"
+                                            className="w-full border rounded-lg px-3 py-2 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text border-accent/50"
+                                            value={accountName}
+                                            onChange={(e) => setAccountName(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium mb-1">Initial Balance</label>
+                                        <input
+                                            type="number"
+                                            className="w-full border rounded-lg px-3 py-2 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text border-accent/50"
+                                            value={balance}
+                                            onChange={(e) => setBalance(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="flex justify-end space-x-3">
+                                        <Dialog.Close asChild>
+                                            <button className="px-4 py-2 rounded-lg border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text">Cancel</button>
+                                        </Dialog.Close>
+                                        <Dialog.Close asChild>
+                                            <button
+                                                onClick={handleAddAccount}
+                                                className="px-4 py-2 rounded-lg bg-primary text-light-text dark:text-dark-text"
+                                            >
+                                                Save
+                                            </button>
+                                        </Dialog.Close>
+                                    </div>
+                                </Dialog.Content>
+                            </Dialog.Root>
+
                         </div>
-                        <div>
-                            <div className="flex items-center justify-between bg-light-background dark:bg-dark-background border-1 border-accent/30 p-4 rounded-lg mb-4">
-                                <div className="flex items-center">
-                                    <div>
-                                        <p className="font-medium text-gray-800 dark:text-dark-text">Checking Account</p>
-                                        <p className="text-sm text-gray-500 dark:text-dark-text/50">****1234</p>
-                                    </div>
-                                </div>
-                                <p className="text-green-500 font-semibold">$8,450.00</p>
-                            </div>
-                            <div className="flex items-center justify-between bg-light-background dark:bg-dark-background border-1 border-accent/30 p-4 rounded-lg mb-4">
-                                <div className="flex items-center">
-                                    {/* <div className="bg-green-100 p-3 rounded-lg mr-4">
-                                        <span className="material-icons text-green-500">savings</span>
-                                    </div> */}
-                                    <div>
-                                        <p className="font-medium text-gray-800 dark:text-dark-text">Savings Account</p>
-                                        <p className="text-sm text-gray-500 dark:text-dark-text/50">****5678</p>
-                                    </div>
-                                </div>
-                                <p className="text-green-500 font-semibold">$4,000.00</p>
-                            </div>
-                            <div className="flex items-center justify-between bg-light-background dark:bg-dark-background border-1 border-accent/30 p-4 rounded-lg mb-4">
-                                <div className="flex items-center">
-                                    {/* <div className="bg-red-100 p-3 rounded-lg mr-4">
-                                        <span className="material-icons text-red-500">credit_card</span>
-                                    </div> */}
-                                    <div>
-                                        <p className="font-medium text-gray-800 dark:text-dark-text">Credit Card</p>
-                                        <p className="text-sm text-gray-500 dark:text-dark-text/50">****9012</p>
-                                    </div>
-                                </div>
-                                <p className="text-red-500 font-semibold">-$1,250.00</p>
-                            </div>
-                        </div>
+
+                        {/* Accounts list */}
+                        <ul className="space-y-3">
+                            {accounts.map((acc) => (
+                                <li
+                                    key={acc.account_id}
+                                    className="flex items-center justify-between bg-light-background dark:bg-dark-background border-1 border-accent/30 p-4 rounded-lg"
+                                >
+
+                                    <p className="font-medium text-gray-800 dark:text-dark-text">{acc.account_name}</p>
+                                    <p className="text-green-500 font-semibold">${acc.balance}</p>
+                                </li>
+                            ))}
+                        </ul>
+
                     </div>
                 </div>
                 <div className="bg-light-background dark:bg-dark-background border-1 border-accent/70 p-6 rounded-lg shadow-lg mt-8">
