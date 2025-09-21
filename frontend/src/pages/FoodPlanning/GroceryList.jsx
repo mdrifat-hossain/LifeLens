@@ -8,26 +8,26 @@ import { IoRestaurantSharp } from "react-icons/io5";
 
 function GroceryList() {
     return (
-        <div className="container mx-auto ">
+        <div className="mx-auto flex-2 px-10">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Grocery Lists</h1>
-                    <p className="text-gray-500 mt-1">
+                    <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Grocery Lists</h1>
+                    <p className="text-light-text/50 dark:text-dark-text/50 mt-1">
                         Manage your shopping lists and track grocery expenses
                     </p>
                 </div>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center shadow-sm hover:bg-blue-700">
-                    <Link to="/meal-plan/grocery-list/product-search" className="flex items-center gap-3 px-3 py-2">
-                        <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <button className="bg-primary text-light-text px-4 py-2 rounded-lg font-semibold flex items-center shadow-sm hover:bg-primary/90">
+                    <Link to="/meal-plan/grocery-list/product-search" className="flex items-center gap-3">
+                        <svg className="w-6 h-6 text-light-text" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                             <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14m-7 7V5" />
                         </svg>
                         New List</Link>
                 </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
+                <div className="bg-accent p-4 rounded-xl shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm text-gray-500">Total Lists</p>
+                        <p className="text-sm text-dark-text">Total Lists</p>
                         <p className="text-2xl font-bold text-gray-900">12</p>
                     </div>
                     <div className="bg-blue-100 text-blue-600 p-3 rounded-lg">
@@ -37,18 +37,18 @@ function GroceryList() {
 
                     </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
+                <div className="bg-accent p-4 rounded-xl shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm text-gray-500">This Month</p>
+                        <p className="text-sm text-dark-text">This Month</p>
                         <p className="text-2xl font-bold text-gray-900">$324</p>
                     </div>
                     <div className="bg-green-100 text-green-600 p-3 rounded-lg">
                         <TbCurrencyTaka className="w-6 h-6 text-green-800" />
                     </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
+                <div className="bg-accent p-4 rounded-xl shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm text-gray-500">Avg per Trip</p>
+                        <p className="text-sm text-dark-text">Avg per Trip</p>
                         <p className="text-2xl font-bold text-gray-900">$68</p>
                     </div>
                     <div className="bg-yellow-100 text-yellow-600 p-3 rounded-lg">
@@ -58,9 +58,9 @@ function GroceryList() {
 
                     </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
+                <div className="bg-accent p-4 rounded-xl shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm text-gray-500">Success Goal</p>
+                        <p className="text-sm text-dark-text">Success Goal</p>
                         <p className="text-2xl font-bold text-gray-900">78%</p>
                     </div>
                     <div className="bg-purple-100 text-purple-600 p-3 rounded-lg">
@@ -101,23 +101,10 @@ function GroceryList() {
             </div>
             <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">Your Lists</h2>
-                    <div className="flex items-center space-x-2">
-                        <div className="text-sm text-gray-500">All Lists</div>
-                        <button className="text-gray-400 p-1 rounded-md hover:bg-gray-100">
-                            <span className="material-icons text-base">expand_more</span>
-                        </button>
-                        <div className="border-l border-gray-300 h-6 mx-2"></div>
-                        <button className="text-gray-400 p-1 rounded-md hover:bg-gray-100">
-                            <span className="material-icons text-base">grid_view</span>
-                        </button>
-                        <button className="text-gray-900 bg-gray-200 p-1 rounded-md">
-                            <span className="material-icons text-base">list</span>
-                        </button>
-                    </div>
+                    <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Your Lists</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                    <div className="bg-light-background dark:bg-dark-background p-4 rounded-xl shadow-sm border border-accent/50 flex flex-col justify-between">
                         <div>
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center">
@@ -125,22 +112,20 @@ function GroceryList() {
                                         <MdShoppingBasket className="w-6 h-6 text-green-800" />
                                     </div>
                                     <div>
-                                        <h4 className="font-semibold text-gray-900">
+                                        <h4 className="font-semibold text-light-text dark:text-dark-text">
                                             Weekly Groceries
                                         </h4>
-                                        <p className="text-xs text-gray-500">Created 2 days ago</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center">
-                                    <span className="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
-                                    <svg className="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                    <svg className="w-6 h-6 text-gray-800 dark:text-dark-text" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                         <path stroke="currentColor" strokeLinecap="round" strokeWidth="2" d="M12 6h.01M12 12h.01M12 18h.01" />
                                     </svg>
                                 </div>
 
                             </div>
-                            <div className="mt-4">
-                                <div className="flex justify-between items-center text-sm text-gray-500 mb-1">
+                            <div className="mt-4 text-light-text/80 dark:text-dark-text/50">
+                                <div className="flex justify-between items-center text-sm  mb-1">
                                     <span>Items</span>
                                     <span>12 / 15</span>
                                 </div>
@@ -149,15 +134,15 @@ function GroceryList() {
                                 </div>
                             </div>
                             <div className="flex justify-between items-center mt-3">
-                                <span className="text-sm text-gray-500">Estimated Total</span>
-                                <span className="font-bold text-gray-900">$85.50</span>
+                                <span className="text-sm text-light-text/80 dark:text-dark-text/50">Estimated Total</span>
+                                <span className="font-bold text-light-text dark:text-dark-text">$85.50</span>
                             </div>
                         </div>
-                        <button className="w-full bg-blue-600 text-white py-2 mt-4 rounded-lg font-semibold hover:bg-blue-700">
-                            Continue Shopping
+                        <button className="w-full bg-green-500 text-light-text py-2 mt-4 rounded-lg font-semibold hover:bg-green-600 cursor-pointer">
+                            View List
                         </button>
                     </div>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                    <div className="bg-light-background dark:bg-dark-background p-4 rounded-xl shadow-sm border border-accent/70 flex flex-col justify-between">
                         <div>
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center">
@@ -168,23 +153,21 @@ function GroceryList() {
 
                                     </div>
                                     <div>
-                                        <h4 className="font-semibold text-gray-900">
+                                        <h4 className="font-semibold text-light-text dark:text-dark-text">
                                             Party Supplies
                                         </h4>
-                                        <p className="text-xs text-gray-500">Completed 5 days ago</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center">
-                                    <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-1 rounded-full"
-                                    >Completed</span>
-                                    <svg className="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                    
+                                    <svg className="w-6 h-6 text-gray-800 dark:text-dark-text" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                         <path stroke="currentColor" strokeLinecap="round" strokeWidth="2" d="M12 6h.01M12 12h.01M12 18h.01" />
                                     </svg>
 
                                 </div>
                             </div>
-                            <div className="mt-4">
-                                <div className="flex justify-between items-center text-sm text-gray-500 mb-1">
+                            <div className="mt-4 text-light-text/80 dark:text-dark-text/50">
+                                <div className="flex justify-between items-center text-sm mb-1">
                                     <span>Items</span>
                                     <span>8 / 8</span>
                                 </div>
@@ -196,101 +179,22 @@ function GroceryList() {
                                 </div>
                             </div>
                             <div className="flex justify-between items-center mt-3">
-                                <span className="text-sm text-gray-500">Total Spent</span>
-                                <span className="font-bold text-gray-900">$42.75</span>
+                                <span className="text-sm text-light-text/80 dark:text-dark-text/50">Total Spent</span>
+                                <span className="font-bold text-light-text dark:text-dark-text">$42.75</span>
                             </div>
                         </div>
-                        <button className="w-full bg-white border border-gray-300 text-gray-700 py-2 mt-4 rounded-lg font-semibold hover:bg-gray-50">
-                            View Receipt
+                        <button className="w-full bg-blue-500 text-light-text py-2 mt-4 rounded-lg font-semibold hover:bg-blue-600 cursor-pointer">
+                            View List
                         </button>
                     </div>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
-                        <div>
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center">
-                                    <div className="bg-purple-100 text-purple-600 p-2 rounded-lg mr-3">
-                                        <CiBookmarkCheck className="w-6 h-6 text-purple-800" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-gray-900">
-                                            Monthly Essentials
-                                        </h4>
-                                        <p className="text-xs text-gray-500">Template</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center">
-                                    <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-1 rounded-full"
-                                    >Template</span>
-                                    <svg className="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" strokeLinecap="round" strokeWidth="2" d="M12 6h.01M12 12h.01M12 18h.01" />
-                                    </svg>
-                                </div>
-                            </div>
-                            <div className="mt-4">
-                                <div className="flex justify-between items-center text-sm text-gray-500 mb-1">
-                                    <span>Items</span>
-                                    <span>25 items</span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div
-                                        className="bg-gray-200 h-2 rounded-full w-full"
-
-                                    ></div>
-                                </div>
-                            </div>
-                            <div className="flex justify-between items-center mt-3">
-                                <span className="text-sm text-gray-500">Avg. Cost</span>
-                                <span className="font-bold text-gray-900">~$120</span>
-                            </div>
-                        </div>
-                        <button className="w-full bg-purple-600 text-white py-2 mt-4 rounded-lg font-semibold hover:bg-purple-700">
-                            Use Template
-                        </button>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
-                        <div>
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center">
-                                    <div className="bg-yellow-100 text-yellow-600 p-2 rounded-lg mr-3">
-                                        <svg className="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                        </svg>
-
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-gray-900">Quick Snacks</h4>
-                                        <p className="text-xs text-gray-500">Last edit 1h ago</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center">
-                                    <span className="text-xs font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">Draft</span>
-                                    <svg className="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" strokeLinecap="round" strokeWidth="2" d="M12 6h.01M12 12h.01M12 18h.01" />
-                                    </svg>
-                                </div>
-                            </div>
-                            <div className="mt-4">
-                                <div className="flex justify-between items-center text-sm text-gray-500 mb-1">
-                                    <span>Items</span>
-                                    <span>3 items</span>
-                                </div>
-                                <div className="w-full bg-transparent h-2"></div>
-                            </div>
-                            <div className="flex justify-between items-center mt-3">
-                                <span className="text-sm text-gray-500">Estimated</span>
-                                <span className="font-bold text-red-500">$15.25</span>
-                            </div>
-                        </div>
-                        <button className="w-full bg-white border border-gray-300 text-gray-700 py-2 mt-4 rounded-lg font-semibold hover:bg-gray-50">
-                            Continue Editing
-                        </button>
-                    </div>
+                    
+                    
                 </div>
             </div>
             <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">Shopping History</h2>
+                        <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Shopping History</h2>
                         <p className="text-sm text-gray-500">
                             Your completed grocery lists and spending patterns
                         </p>

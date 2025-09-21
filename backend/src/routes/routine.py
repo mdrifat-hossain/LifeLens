@@ -48,7 +48,9 @@ async def add_routine(
         return {"status": "success", "routine_id": routine_id}
 
     except Exception as e:
-        print("Error in storing routine:", str(e))
+        import traceback
+        print(traceback.format_exc())
+        print("Error is storing routine ", str(e))
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
@@ -79,6 +81,8 @@ async def add_task(input: TaskInput, request_obj: Request, db_dep=Depends(get_db
         return {"status": "success", "task_id": task_id, "task_name": input.task_name}
 
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error adding task: {str(e)}")
 
 
@@ -89,7 +93,7 @@ async def get_tasks(request_obj: Request, db_dep=Depends(get_db)):
         user_details = authenticate_and_get_user_details(request_obj)
         user_id = user_details.get("user_id")
 
-        tasks = await routine_db.get_tasks(cursor, conn, user_id)
+        tasks = await redis_db_services.get_tasks(user_id, cursor)
         return {"tasks": tasks}
 
     except Exception as e:
@@ -97,20 +101,26 @@ async def get_tasks(request_obj: Request, db_dep=Depends(get_db)):
 
 
 @router.patch("/toggle_task/{task_id}")
-async def toggle_task(task_id: int, db_dep=Depends(get_db)):
+async def toggle_task(request_obj: Request, task_id: int, db_dep=Depends(get_db)):
     try:
         cursor, conn = db_dep
-        await routine_db.toggle_task(cursor, conn, task_id)
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details.get("user_id")
+
+        await routine_db.toggle_task(cursor, conn, task_id, user_id)
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error toggling task: {str(e)}")
 
 
 @router.delete("/delete_task/{task_id}")
-async def delete_task(task_id: int, db_dep=Depends(get_db)):
+async def delete_task(request_obj: Request, task_id: int, db_dep=Depends(get_db)):
     try:
         cursor, conn = db_dep
-        await routine_db.delete_task(cursor, conn, task_id)
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details.get("user_id")
+
+        await routine_db.delete_task(cursor, conn, task_id, user_id)
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting task: {str(e)}")

@@ -160,18 +160,18 @@ function RoutineDashboard() {
 
 
     return (
-        <div className="flex-grow p-6 lg:p-8">
+        <div className="flex-grow p-6 lg:p-8 bg-light-background dark:bg-dark-background h-screen">
             <div className="max-w-7xl mx-auto">
-                <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <div className="bg-light-background dark:bg-dark-background p-6 rounded-lg shadow-lg mb-6 border-1 border-accent/50">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-semibold text-gray-800">
+                        <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text">
                             Weekly Routine
                         </h2>
                         <Link to="/manage-day/edit" className="flex items-center gap-3 px-3 py-2">
                             <button
-                                className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700"
+                                className="bg-primary px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-primary/70 cursor-pointer"
                             >
-                                <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                <svg className="w-6 h-6 text-gray-800 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                     <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m14.304 4.844 2.852 2.852M7 7H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4.5m2.409-9.91a2.017 2.017 0 0 1 0 2.853l-6.844 6.844L8 14l.713-3.565 6.844-6.844a2.015 2.015 0 0 1 2.852 0Z" />
                                 </svg>
                                 <span>Edit Routine</span>
@@ -180,16 +180,16 @@ function RoutineDashboard() {
                         </Link>
                     </div>
                     <div className="mt-4">
-                        <div className="border-2 border-gray-200 rounded-lg">
+                        <div className="border-2 border-accent/50 dark:border-accent/50 rounded-lg text-white">
                             <div
-                                className="p-4 flex justify-between items-center cursor-pointer bg-gray-100 hover:bg-gray-200 transition duration-200 rounded-lg"
+                                className="p-4 flex justify-between items-center cursor-pointer bg-accent  hover:bg-accent/8- transition duration-200 rounded-lg"
                                 onClick={() => setIsOpen(!isOpen)}
                             >
                                 <span className="tracking-wider">View Full Weekly Schedule</span>
                                 {isOpen ? (
-                                    <IoIosArrowUp className="text-gray-600" />
+                                    <IoIosArrowUp className="text-white" />
                                 ) : (
-                                    <IoIosArrowDown className="text-gray-600" />
+                                    <IoIosArrowDown className="text-white" />
                                 )}
                             </div>
                         </div>
@@ -200,7 +200,7 @@ function RoutineDashboard() {
                         className={`transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? "max-h-[1000px] opacity-100 mt-6" : "max-h-0 opacity-0"
                             }`}
                     >
-                        <div className="border-2 border-gray-200 rounded-lg p-4">
+                        <div className="border-2 border-gray-200 dark:border-accent/50 rounded-lg p-4">
                             <div className="grid grid-cols-7 gap-2 text-center text-sm">
                                 {dayOrder.map((day) => {
                                     const isToday =
@@ -212,7 +212,7 @@ function RoutineDashboard() {
                                             key={day}
                                             className={`p-2 rounded-lg ${isToday ? "bg-green-100" : ""}`}
                                         >
-                                            <p className="font-medium text-gray-600">{day.slice(0, 3)}</p>
+                                            <p className="font-medium text-gray-400">{day.slice(0, 3)}</p>
                                             {routinesByDay[day]?.map((routine) => (
                                                 <div
                                                     key={routine.routine_id}
@@ -325,28 +325,28 @@ function RoutineDashboard() {
                             </div>
                         </div>
                     </div> */}
-                    <div className="bg-white p-6 rounded-lg shadow-sm lg:col-span-1">
-                        <h3 className="font-semibold text-gray-800">Today's Progress</h3>
+                    <div className="bg-light-background dark:bg-dark-background p-6 rounded-lg shadow-lg border-1 border-accent/50 lg:col-span-1 ">
+                        <h3 className="font-semibold text-gray-800 dark:text-dark-text">Today's Progress</h3>
                         <div className="mt-4 flex items-start space-x-4">
                             {/* Left vertical bar */}
                             <div className="flex flex-col items-center">
                                 {/* Top icon */}
-                                <div className="bg-indigo-600 text-white h-10 w-10 rounded-full flex items-center justify-center">
+                                <div className="bg-accent text-white h-10 w-10 rounded-full flex items-center justify-center">
                                     <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 7v5l3 3" />
                                     </svg>
                                 </div>
 
                                 {/* Vertical progress bar */}
-                                <div className="w-1 h-48 bg-indigo-200 mt-4 rounded-2xl relative">
+                                <div className="w-1 h-48 bg-accent/20 mt-4 rounded-2xl relative">
                                     <div
-                                        className="bg-indigo-500 rounded-2xl absolute bottom-0 w-1"
+                                        className="bg-accent rounded-2xl absolute bottom-0 w-1"
                                         style={{ height: `${taskCompletion}%` }}
                                     ></div>
                                 </div>
 
                                 {/* Bottom icon */}
-                                <svg className="mt-4 h-10 w-10 text-gray-800" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                <svg className="mt-4 h-10 w-10 text-gray-800 dark:text-dark-text" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
                                     <path fillRule="evenodd" d="M12 20a7.966 7.966 0 0 1-5-2v-1c0-2 1.5-3 3-3h4c1.5 0 3 1 3 3v1a7.966 7.966 0 0 1-5 2zM12 7c-2 0-3.5 1.5-3.5 3.5S10 14 12 14s3.5-1.5 3.5-3.5S14 7 12 7z" clipRule="evenodd" />
                                 </svg>
                             </div>
@@ -354,23 +354,23 @@ function RoutineDashboard() {
                             {/* Right side info */}
                             <div className="flex-1">
                                 {/* Current time */}
-                                <p className="text-3xl font-bold text-gray-900">
+                                <p className="text-3xl font-bold text-gray-900 dark:text-dark-text">
                                     {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                 </p>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-gray-500 dark:text-dark-text/60">
                                     {time.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
                                 </p>
 
                                 {/* Task completion */}
                                 <div className="mt-6">
-                                    <p className="text-center text-3xl font-bold text-indigo-500">
+                                    <p className="text-center text-3xl font-bold text-accent">
                                         {Math.round(taskCompletion)}%
                                     </p>
-                                    <p className="text-center text-sm text-gray-500">Day Complete</p>
+                                    <p className="text-center text-sm text-gray-500 dark:text-dark-text/60">Day Complete</p>
 
                                     <div className="flex justify-between items-center text-sm mb-1">
-                                        <p className="text-gray-600">Tasks Done</p>
-                                        <p className="font-medium text-gray-800">
+                                        <p className="text-gray-600 dark:text-dark-text/60">Tasks Done</p>
+                                        <p className="font-medium text-gray-800 dark:text-dark-text/60">
                                             {completedTasks}/{totalTasks}
                                         </p>
                                     </div>
@@ -378,7 +378,7 @@ function RoutineDashboard() {
                                     {/* Horizontal progress bar */}
                                     <div className="bg-gray-200 rounded-full h-2 w-full">
                                         <div
-                                            className="bg-indigo-500 h-2 rounded-full"
+                                            className="bg-accent h-2 rounded-full"
                                             style={{ width: `${taskCompletion}%` }}
                                         ></div>
                                     </div>
@@ -386,15 +386,15 @@ function RoutineDashboard() {
                                     {/* Current routine */}
                                     <div className="mt-6 text-sm text-center">
                                         {currentRoutine ? (
-                                            <p className="text-gray-700">
+                                            <p className="text-gray-700 ">
                                                 Now: <span className="font-medium">{currentRoutine.routine_name}</span> (
                                                 {currentRoutine.start_time}–{currentRoutine.end_time})
                                             </p>
                                         ) : (
-                                            <p className="text-gray-500">No routine right now</p>
+                                            <p className="text-gray-500 dark:text-dark-text/60">No routine right now</p>
                                         )}
                                         {/* Time left in the day */}
-                                        <p className="mt-2 text-gray-600">
+                                        <p className="mt-2 text-gray-600 dark:text-dark-text/60">
                                             ⏳ Time left today:{" "}
                                             <span className="font-medium">{hoursLeft}h {minsLeft}m</span>
                                         </p>
@@ -403,8 +403,9 @@ function RoutineDashboard() {
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white p-6 rounded-lg shadow-sm lg:col-span-1">
-                        <h3 className="font-semibold text-gray-800">Today's Routine</h3>
+
+                    <div className="bg-light-background dark:bg-dark-background border-1 border-accent/50 p-6 rounded-lg shadow-lg lg:col-span-1">
+                        <h3 className="font-semibold text-gray-800 dark:text-dark-text">Today's Routine</h3>
                         <div className="space-y-4 mt-4">
                             {todaysRoutines.length > 0 ? (
                                 todaysRoutines.map((routine) => {
@@ -423,14 +424,14 @@ function RoutineDashboard() {
                                             key={routine.routine_id}
                                             className={`border p-3 rounded-lg flex items-center justify-between 
               ${isCompleted
-                                                    ? "bg-green-50 border-green-200"
+                                                    ? "bg-green-50 dark:bg-green-800 border-green-200"
                                                     : isOverdue
-                                                        ? "bg-red-50 border-red-200"
-                                                        : "bg-gray-50 border-gray-200"
+                                                        ? "bg-red-50 dark:bg-[#b33939] border-red-200"
+                                                        : "bg-gray-50 dark:bg-dark-background border-accent/70"
                                                 }`}
                                         >
                                             <div className="flex items-center space-x-3">
-                                                <div className="bg-gray-100 rounded-md p-1">
+                                                <div className="rounded-md p-1">
                                                     <input
                                                         type="checkbox"
                                                         checked={isCompleted}
@@ -439,10 +440,10 @@ function RoutineDashboard() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-gray-800">
+                                                    <p className="font-medium text-gray-800 dark:text-dark-text">
                                                         {routine.routine_name}
                                                     </p>
-                                                    <p className="text-sm text-gray-500">
+                                                    <p className="text-sm text-gray-500 dark:text-dark-text/60">
                                                         {routine.start_time} - {routine.end_time}
                                                     </p>
                                                 </div>
@@ -450,14 +451,14 @@ function RoutineDashboard() {
 
                                             {isCompleted ? (
                                                 <div className="bg-green-500 text-white h-6 w-6 rounded-full flex items-center justify-center">
-                                                    ✅
+                                                    ✔︎
                                                 </div>
                                             ) : isOverdue ? (
                                                 <div className="bg-red-500 text-white h-6 w-6 rounded-full flex items-center justify-center">
-                                                    ❌
+                                                    ✖
                                                 </div>
                                             ) : (
-                                                <div className="bg-gray-400 text-white h-6 w-6 rounded-full flex items-center justify-center">
+                                                <div className="bg-white text-white h-6 w-6 rounded-full flex items-center justify-center">
                                                     ⏳
                                                 </div>
                                             )}
@@ -465,7 +466,7 @@ function RoutineDashboard() {
                                     );
                                 })
                             ) : (
-                                <p className="text-gray-500">No routines for today 🎉</p>
+                                <p className="text-gray-500 dark:text-dark-text/70">No routines for today 🎉</p>
                             )}
                         </div>
                     </div>
@@ -675,9 +676,9 @@ function RoutineDashboard() {
                                 </div>
                             </div>
                         </div> */}
-                        <div className="bg-white p-6 rounded-lg shadow-sm">
+                        <div className="bg-light-background dark:bg-dark-background border-1 border-accent/50 p-6 rounded-lg shadow-lg">
                             <div className="flex justify-between items-center">
-                                <h3 className="font-semibold text-blue-500">Today's Tasks</h3>
+                                <h3 className="font-semibold text-black dark:text-dark-text">Today's Tasks</h3>
                                 <button
                                     className="text-indigo-600 hover:text-indigo-800"
                                     onClick={() => setShowForm(!showForm)}
@@ -691,12 +692,12 @@ function RoutineDashboard() {
                                     <input
                                         value={newTask}
                                         onChange={(e) => setNewTask(e.target.value)}
-                                        className="flex-1 p-2 border rounded focus:outline-none"
+                                        className="flex-1 p-2 dark:text-dark-text border-1 border-accent/70 rounded focus:outline-none"
                                         placeholder="Enter new task..."
                                     />
                                     <button
                                         onClick={handleAddTask}
-                                        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                                        className="bg-primary text-black px-4 py-2 rounded hover:bg-primary/90 cursor-pointer"
                                     >
                                         Add
                                     </button>
@@ -708,7 +709,7 @@ function RoutineDashboard() {
                                     tasks.map((task) => (
                                         <div
                                             key={task.task_id}
-                                            className="flex items-center justify-between bg-gray-50 p-3 rounded"
+                                            className="flex items-center justify-between bg-gray-50 dark:bg-accent p-3 rounded"
                                         >
                                             <div className="flex items-center space-x-3">
                                                 <input
@@ -718,7 +719,7 @@ function RoutineDashboard() {
                                                     className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                                                 />
                                                 <label
-                                                    className={`text-gray-800 ${task.completed ? "line-through text-gray-500" : ""
+                                                    className={`text-gray-800 dark:text-dark-text ${task.completed ? "line-through text-gray-500" : ""
                                                         }`}
                                                 >
                                                     {task.task_name}
@@ -737,44 +738,44 @@ function RoutineDashboard() {
                                 )}
                             </div>
                         </div>
-                        <div className="bg-indigo-50 p-6 rounded-lg">
+                        <div className="bg-light-background dark:bg-dark-background border-1 border-accent/70 p-6 rounded-lg shadow-lg">
                             <h3
-                                className="font-semibold text-gray-800 flex items-center space-x-2"
+                                className="font-semibold text-gray-800 dark:text-dark-text flex items-center space-x-2"
                             >
-                                <svg className="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                <svg className="w-6 h-6 text-gray-800 dark:text-dark-text" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                     <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 9a3 3 0 0 1 3-3m-2 15h4m0-3c0-4.1 4-4.9 4-9A6 6 0 1 0 6 9c0 4 4 5 4 9h4Z" />
                                 </svg>
 
                                 <span>Free Time Suggestions</span>
                             </h3>
                             <div className="space-y-4 mt-4">
-                                <div className="bg-white p-4 rounded-lg">
+                                <div className="bg-white dark:bg-dark-background  border-1 border-primary p-4 rounded-lg">
                                     <div className="flex items-start space-x-3">
-                                        <svg className="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <svg className="w-6 h-6 text-gray-800 dark:text-dark-text" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                             <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.03v13m0-13c-2.819-.831-4.715-1.076-8.029-1.023A.99.99 0 0 0 3 6v11c0 .563.466 1.014 1.03 1.007 3.122-.043 5.018.212 7.97 1.023m0-13c2.819-.831 4.715-1.076 8.029-1.023A.99.99 0 0 1 21 6v11c0 .563-.466 1.014-1.03 1.007-3.122-.043-5.018.212-7.97 1.023" />
                                         </svg>
 
 
                                         <div>
-                                            <p className="font-medium text-gray-800">
+                                            <p className="font-medium text-gray-800 dark:text-dark-text">
                                                 Read for 15 minutes
                                             </p>
-                                            <p className="text-sm text-gray-500">
+                                            <p className="text-sm text-gray-500 dark:text-dark-text/60">
                                                 Boost your knowledge and relax your mind
                                             </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-white p-4 rounded-lg">
+                                <div className="bg-white dark:bg-dark-background p-4 border-1 border-primary rounded-lg">
                                     <div className="flex items-start space-x-3">
-                                        <svg className="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <svg className="w-6 h-6 text-gray-800 dark:text-dark-text" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                             <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 18c0 1.1046-.89543 2-2 2s-2-.8954-2-2 .89543-2 2-2 2 .8954 2 2Zm0 0V6.33333L18 4v11.6667M8 10.3333 18 8m0 8c0 1.1046-.8954 2-2 2s-2-.8954-2-2 .8954-2 2-2 2 .8954 2 2Z" />
                                         </svg>
 
                                         <div>
-                                            <p className="font-medium text-gray-800">Listen to music</p>
-                                            <p className="text-sm text-gray-500">
+                                            <p className="font-medium text-gray-800 dark:text-dark-text">Listen to music</p>
+                                            <p className="text-sm text-gray-500 dark:text-dark-text/60">
                                                 Energize yourself with your favorite tunes
                                             </p>
                                         </div>

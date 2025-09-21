@@ -1,7 +1,7 @@
-import {useAuth} from "@clerk/clerk-react"
+import { useAuth } from "@clerk/clerk-react"
 
 export const useApi = () => {
-    const {getToken} = useAuth()
+    const { getToken } = useAuth()
 
     const makeRequest = async (endpoint, options = {}) => {
         const token = await getToken()
@@ -19,11 +19,15 @@ export const useApi = () => {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null)
-            throw new Error(errorData?.detail || "An error occurred")
+            if (response.status === 429) {
+                return { status: "rate_limit_error", reason: "Rate limit exceeded. Basic users can only make 3 requests per hour." }
+            }
+            return { status: "error", reason: errorData?.detail || "An error occurred" }
         }
+
 
         return response.json()
     }
 
-    return {makeRequest}
+    return { makeRequest }
 }

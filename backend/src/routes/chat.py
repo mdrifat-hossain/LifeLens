@@ -44,13 +44,15 @@ async def ai_chat_answer(req: ConversationRequest, request_obj: Request = None, 
         user_food_planning_info = await redis_db_services.get_user_food_planning_info(user_id, cursor)
         user_health_alert = await redis_db_services.get_health_alert(user_id, cursor)
         user_routines = await redis_db_services.get_user_routines(user_id, cursor)
+        user_task = await redis_db_services.get_tasks(user_id, cursor)
 
         domains = [
             {"name": "user_meal_plan", "desc": user_meal_plan},
             {"name": "user_grocery_list", "desc": user_grocery_list},
             {"name": "user_food_planning_info", "desc": user_food_planning_info},
             {"name": "user_health_alert", "desc": user_health_alert},
-            {"name": "user_routines", "desc": user_routines}
+            {"name": "user_routines", "desc": user_routines},
+            {"name": "user_task", "desc": user_task}
         ]
 
         # Latest user query

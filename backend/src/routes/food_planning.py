@@ -10,6 +10,7 @@ from ..ai_generator.foodPlanning.mealGenerator import ai_meal_generator
 from ..ai_generator.foodPlanning.mealGenerator.schema import GroceryList
 import time, json
 from ..database.redis_db import redis_db_services
+from . import throttling
 
 router = APIRouter()
 
@@ -130,6 +131,8 @@ async def all_meal_generator(request: Request = None, db_dep=Depends(get_db)):
         user_details = authenticate_and_get_user_details(request)
         user_id = user_details.get("user_id")
 
+        await throttling.apply_rate_limit(user_id, cursor, conn)
+
         await food_planning_db.delete_all_meal(cursor, conn, user_id)
 
         user_records = await redis_db_services.get_user_food_planning_info(user_id, cursor)
@@ -154,9 +157,13 @@ async def all_meal_generator(request: Request = None, db_dep=Depends(get_db)):
         all_meal_plan = await redis_db_services.get_meal_plan(user_id, cursor)
         return {"status": "success", "data": all_meal_plan}
 
+    except HTTPException as e:
+        raise e
     except Exception as e:
         print("Meal generator error:", traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Meal generator failed: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
 @router.get("/get-all-meal")
@@ -187,6 +194,8 @@ async def change_meal_plan(
         user_details = authenticate_and_get_user_details(request)
         user_id = user_details.get("user_id")
 
+        await throttling.apply_rate_limit(user_id, cursor, conn)
+
         validation_result = await ai_meal_generator.change_meal_plan_query_validator(query)
 
         validation_dict = validation_result.dict()   # pydantic to Dict
@@ -206,8 +215,11 @@ async def change_meal_plan(
             return {"status": "success", "message": "Meal change request is valid.", "data": new_meal}
         else:
             return {"status": "error", "message": "Meal change request is invalid.", "reason": reason}
-
+    
+    except HTTPException as e:
+        raise e
     except Exception as e:
+        print("Caught exception:", type(e), e)
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

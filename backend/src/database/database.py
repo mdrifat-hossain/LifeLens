@@ -42,10 +42,10 @@ async def get_db():
         async with conn.cursor(aiomysql.DictCursor) as cursor:
             try:
                 yield cursor, conn
-            except Exception as e:
-                # Generally callers handle rollback, but this is an extra guard.
+            finally:
+                # Always try to rollback on any exception
+                # The context manager will handle the connection cleanup
                 try:
                     await conn.rollback()
                 except Exception:
                     pass
-                raise HTTPException(status_code=500, detail=str(e))

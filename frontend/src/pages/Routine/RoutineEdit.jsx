@@ -648,134 +648,134 @@ function RoutineEdit() {
 
 
     return (
-        <div className="flex-grow container mx-auto px-6 py-8">
+        <div className="flex-grow mx-auto px-6 py-8 bg-light-background dark:bg-dark-background pl-10 pr-10 h-screen">
             <ToastContainer />
-            <div className="flex grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="flex flex-col lg:flex-row gap-8">
                 <form
                     onSubmit={handleSubmit}
-                    className="flex-2 lg:col-span-2 bg-white rounded-lg shadow p-6"
+                    className="flex-2 lg:col-span-2 rounded-lg shadow-lg p-6 bg-light-background dark:bg-dark-background border-1 border-accent/70 text-gray-700 dark:text-dark-text"
                 >
-                    <div className="flex-2 lg:col-span-2 bg-white rounded-lg shadow p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-lg font-semibold text-gray-700">
-                                Weekly Routine
-                            </h2>
-                            <div className="flex items-center space-x-4">
-                                <div className="relative">
-                                    <select
-                                        name="day"
-                                        value={formData.day}
-                                        onChange={handleChange}
-                                        className="appearance-none bg-white border border-gray-300 rounded-md py-2 pl-3 pr-10 text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                    >
-                                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(d => (
-                                            <option key={d}>{d}</option>
-                                        ))}
-                                    </select>
-                                    <svg class="absolute top-2 right-1 w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7" />
-                                    </svg>
 
-                                </div>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-lg font-semibold">
+                            Weekly Routine
+                        </h2>
+                        <div className="flex items-center space-x-4">
+                            <div className="relative">
+                                <select
+                                    name="day"
+                                    value={formData.day}
+                                    onChange={handleChange}
+                                    className="appearance-none bg-white dark:bg-dark-background border border-accent/70 rounded-md py-2 pl-3 pr-10  focus:outline-none  focus:ring-accent"
+                                >
+                                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(d => (
+                                        <option key={d}>{d}</option>
+                                    ))}
+                                </select>
+                                <svg class="absolute top-2 right-1 w-6 h-6 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7" />
+                                </svg>
+
                             </div>
                         </div>
-                        <div className="space-y-4">
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label
+                                className="block text-sm font-medium "
+                                for="routine-name"
+                            >Routine Name</label>
+                            <input
+                                name="routineName"
+                                value={formData.routineName}
+                                onChange={handleChange}
+                                className="mt-1 block w-full h-10 p-3 rounded-md border border-accent/70 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:outline-none sm:text-sm "
+                                id="routine-name"
+                                placeholder="e.g. Morning Workout"
+                                type="text"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium "
+                            >Same days of the Week</label>
+                            <div className="mt-2 grid grid-cols-4 gap-2">
+                                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+                                    <label key={day} className="flex items-center space-x-2 text-sm">
+                                        <input
+                                            type="checkbox"
+                                            // checked={formData.selectedDays.includes(day)}
+                                            checked={formData.selectedDays?.includes(day) || false}
+                                            onChange={() => handleCheckbox(day)}
+                                            className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-offset-0 focus:ring-indigo-200 focus:ring-opacity-50"
+                                        />
+                                        <span>{day}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label
-                                    className="block text-sm font-medium text-gray-700"
-                                    for="routine-name"
-                                >Routine Name</label>
+                                    className="block text-sm font-medium "
+                                    for="start-time"
+                                >Start Time</label>
                                 <input
-                                    name="routineName"
-                                    value={formData.routineName}
+                                    name="startTime"
+                                    value={formData.startTime}
                                     onChange={handleChange}
-                                    className="mt-1 block w-full h-10 p-3 rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:outline-none sm:text-sm "
-                                    id="routine-name"
-                                    placeholder="e.g. Morning Workout"
-                                    type="text"
+                                    type="time"
+                                    className="mt-1 block w-full h-10 p-3 rounded-md border border-accent/70 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:outline-none sm:text-sm"
+                                    id="start-time"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700"
-                                >Same days of the Week</label>
-                                <div className="mt-2 grid grid-cols-4 gap-2">
-                                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-                                        <label key={day} className="flex items-center space-x-2 text-sm">
-                                            <input
-                                                type="checkbox"
-                                                // checked={formData.selectedDays.includes(day)}
-                                                checked={formData.selectedDays?.includes(day) || false}
-                                                onChange={() => handleCheckbox(day)}
-                                                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-offset-0 focus:ring-indigo-200 focus:ring-opacity-50"
-                                            />
-                                            <span>{day}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label
-                                        className="block text-sm font-medium text-gray-700"
-                                        for="start-time"
-                                    >Start Time</label>
-                                    <input
-                                        name="startTime"
-                                        value={formData.startTime}
-                                        onChange={handleChange}
-                                        type="time"
-                                        className="mt-1 block w-full h-10 p-3 rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:outline-none sm:text-sm"
-                                        id="start-time"
-                                    />
-                                </div>
-                                <div>
-                                    <label
-                                        className="block text-sm font-medium text-gray-700"
-                                        for="end-time"
-                                    >End Time</label>
-                                    <input
-                                        name="endTime"
-                                        value={formData.endTime}
-                                        onChange={handleChange}
-                                        type="time"
-                                        className="mt-1 block w-full h-10 p-3 rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:outline-none sm:text-sm"
-                                        id="end-time"
-                                    />
-                                </div>
-                            </div>
-                            <div>
                                 <label
-                                    className="block text-sm font-medium text-gray-700"
-                                    for="color"
-                                >Color</label>
-                                <div className="mt-2 flex items-center space-x-2">
-                                    {Object.keys(colors).map((clr) => (
-                                        <div
-                                            key={clr}
-                                            onClick={() => handleColorSelect(clr)}
-                                            className={`w-8 h-8 rounded-full cursor-pointer ${colors[clr].split(" ")[0]} ${formData.color === clr ? "ring-2 ring-offset-2 " + colors[clr].split(" ")[1] : ""
-                                                }`}
-                                        ></div>
-                                    ))}
-                                </div>
-
-                            </div>
-                            <div>
-                                <label
-                                    className="block text-sm font-medium text-gray-700"
-                                    for="description"
-                                >Description</label>
-                                <textarea
-                                    name="description"
-                                    value={formData.description}
+                                    className="block text-sm font-medium "
+                                    for="end-time"
+                                >End Time</label>
+                                <input
+                                    name="endTime"
+                                    value={formData.endTime}
                                     onChange={handleChange}
-                                    className="mt-1 block w-full h-20 p-3 rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:outline-none sm:text-sm"
-                                    id="description"
-                                    placeholder="Add a short description..."
-                                    rows="3"
-                                ></textarea>
+                                    type="time"
+                                    className="mt-1 block w-full h-10 p-3 rounded-md border border-accent/70 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:outline-none sm:text-sm"
+                                    id="end-time"
+                                />
                             </div>
-                            {/* <div className="flex justify-end space-x-3 pt-4">
+                        </div>
+                        <div>
+                            <label
+                                className="block text-sm font-medium "
+                                for="color"
+                            >Color</label>
+                            <div className="mt-2 flex items-center space-x-2">
+                                {Object.keys(colors).map((clr) => (
+                                    <div
+                                        key={clr}
+                                        onClick={() => handleColorSelect(clr)}
+                                        className={`w-8 h-8 rounded-full cursor-pointer ${colors[clr].split(" ")[0]} ${formData.color === clr ? "ring-2 ring-offset-2 " + colors[clr].split(" ")[1] : ""
+                                            }`}
+                                    ></div>
+                                ))}
+                            </div>
+
+                        </div>
+                        <div>
+                            <label
+                                className="block text-sm font-medium "
+                                for="description"
+                            >Description</label>
+                            <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                className="mt-1 block w-full h-20 p-3 rounded-md border border-accent/70 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:outline-none sm:text-sm"
+                                id="description"
+                                placeholder="Add a short description..."
+                                rows="3"
+                            ></textarea>
+                        </div>
+                        {/* <div className="flex justify-end space-x-3 pt-4">
                                 <button
                                     type="button"
                                     onClick={handleReset}
@@ -791,69 +791,69 @@ function RoutineEdit() {
                                     Add Routine
                                 </button>
                             </div> */}
-                            <div className="flex justify-end space-x-3 pt-4">
-                                {isEditing ? (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={handleReset}
-                                            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="button"
-                                            // onClick={handleUpdateRoutine}
-                                            className="py-2 px-4 rounded-md text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600"
-                                        >
-                                            Update
-                                        </button>
-                                        <button
-                                            type="button"
-                                            // onClick={handleDeleteRoutine}
-                                            className="py-2 px-4 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
-                                        >
-                                            Delete
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={handleReset}
-                                            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleAddRoutine}
-                                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                                            type="submit"
-                                        >
-                                            Add Routine
-                                        </button>
-                                    </>
-                                )}
-                            </div>
+                        <div className="flex justify-end space-x-3 pt-4">
+                            {isEditing ? (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={handleReset}
+                                        className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        // onClick={handleUpdateRoutine}
+                                        className="py-2 px-4 rounded-md text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600"
+                                    >
+                                        Update
+                                    </button>
+                                    <button
+                                        type="button"
+                                        // onClick={handleDeleteRoutine}
+                                        className="py-2 px-4 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                                    >
+                                        Delete
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={handleReset}
+                                        className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleAddRoutine}
+                                        className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-light-text bg-primary hover:bg-primary/80"
+                                        type="submit"
+                                    >
+                                        Add Routine
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
+
                 </form>
-                <div className="lg:col-span-2 bg-white rounded-lg shadow p-6 flex-2">
+                <div className="lg:col-span-2 bg-light-background dark:bg-dark-background border-1 border-accent/70 rounded-lg shadow p-6 flex-2">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-lg font-semibold text-gray-700">
+                        <h2 className="text-lg font-semibold text-gray-700 dark:text-dark-text">
                             Weekly Routine
                         </h2>
                         <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-2">
                                 <button
-                                    className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    className="flex items-center bg-accent text-white px-4 py-2 rounded-md hover:bg-accent/80 "
                                 >
                                     <FaSave className="mr-2 text-lg" />
                                     Save Routine
                                 </button>
 
                                 <button
-                                    className="flex items-center bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                    className="flex items-center bg-primary text-dark-text px-4 py-2 rounded-md hover:bg-primary/80 "
                                     onClick={() => setShowAIHelp(!showAIHelp)}
                                 >
                                     <RiRobot2Fill className="mr-2 text-lg" />
@@ -889,13 +889,13 @@ function RoutineEdit() {
                     <div className="grid grid-cols-1 h-[calc(100vh-250px)] overflow-y-auto scroll-smooth">
                         {/* Header */}
                         <div className="grid grid-cols-12">
-                            <div className="col-span-1 border-r text-center text-xs py-2 text-gray-500">Time</div>
+                            <div className="col-span-1 text-center text-xs py-2 text-gray-500">Time</div>
                             <div className="col-span-11 pl-4 text-xs py-2 text-gray-500">Tasks</div>
                         </div>
 
                         {Array.from({ length: 24 }).map((_, i) => (
-                            <div key={i} className="grid grid-cols-12 border-t border-gray-200 relative">
-                                <div className="col-span-1 border-r py-4 pr-2 text-right text-sm text-gray-500">
+                            <div key={i} className="grid grid-cols-12 border-t border-gray-200 dark:border-accent relative">
+                                <div className="col-span-1  py-4 pr-2 text-right text-sm text-gray-500">
                                     {String(i).padStart(2, "0")}:00
                                 </div>
                                 <div className="col-span-11 pl-4 relative h-16">
@@ -913,7 +913,7 @@ function RoutineEdit() {
                                                 }}
                                                 onClick={() => handleBlockClick(block.task, idx)}
                                             >
-                                                <div className="font-bold text-center">{block.task.routineName}</div>
+                                                <div className="font-bold text-center text-white">{block.task.routineName}</div>
                                                 <div className="text-[10px] text-center">{block.task.description}</div>
                                             </div>
                                         ))}
@@ -923,225 +923,16 @@ function RoutineEdit() {
                     </div>
 
 
-                    {/* <div
-                        className="grid grid-cols-1 h-[calc(100vh-250px)] overflow-y-auto scroll-smooth">
-
-                        <div className="grid grid-cols-12">
-                            <div className="col-span-1 border-r border-gray-200">
-                                <div
-                                    className="text-xs text-gray-500 font-medium py-2 text-center"
-                                >
-                                    Time
-                                </div>
-                            </div>
-                            <div className="col-span-11 pl-4">
-                                <div className="text-xs text-gray-500 font-medium py-2">
-                                    Tasks
-                                </div>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                00:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                01:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                02:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                03:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                04:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                05:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                06:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                07:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                08:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                09:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                10:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                11:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                12:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                13:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                14:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                15:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                16:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                17:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                18:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                19:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                20:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                21:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                22:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                        <div className="grid grid-cols-12 border-t border-gray-200">
-                            <div
-                                className="col-span-1 border-r border-gray-200 py-4 pr-2 text-right text-sm text-gray-500"
-                            >
-                                23:00
-                            </div>
-                            <div className="col-span-11 pl-4"></div>
-                        </div>
-                    </div> */}
+                    
                 </div>
                 {showAIHelp && (
-                    <div className="bg-gray-100 rounded-lg p-6 flex flex-col flex-1">
+                    <div className="bg-light-background dark:bg-dark-background border-1 border-accent/70 rounded-lg p-6 flex flex-col flex-1">
                         <div className="flex items-center mb-4">
-                            <RiRobot2Fill className="text-purple-600 mr-2 text-2xl" />
-                            <h3 className="text-md font-semibold text-gray-800">AI Assistant</h3>
+                            <RiRobot2Fill className="text-primary mr-2 text-2xl" />
+                            <h3 className="text-md font-semibold text-gray-800 dark:text-dark-text">AI Assistant</h3>
                         </div>
                         {/* Chat Messages */}
-                        <div className="bg-white rounded-lg p-4 mb-4 flex-grow overflow-y-auto h-[300px]">
+                        <div className="bg-light-background dark:bg-dark-background rounded-lg p-4 pl-0 pr-0 mb-4 flex-grow overflow-y-auto h-[300px]">
                             {messages.map((msg, index) => (
                                 <div
                                     key={index}
@@ -1149,7 +940,7 @@ function RoutineEdit() {
                                 >
                                     <div
                                         className={`max-w-[75%] px-3 py-2 rounded-lg text-sm ${msg.sender === "user"
-                                            ? "bg-purple-600 text-white rounded-br-none"
+                                            ? "bg-primary text-black rounded-br-none"
                                             : "bg-gray-200 text-gray-800 rounded-bl-none"
                                             }`}
                                     >
@@ -1160,7 +951,7 @@ function RoutineEdit() {
                         </div>
                         <div className="relative">
                             <input
-                                className="w-full border border-gray-300 rounded-md py-2 pl-4 pr-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full border dark:text-dark-text border-accent/70 rounded-md py-2 pl-4 pr-12"
                                 placeholder="Describe your routine..."
                                 type="text"
                                 value={input}
@@ -1169,9 +960,9 @@ function RoutineEdit() {
                             />
                             <button
                                 onClick={sendMessage}
-                                className="absolute inset-y-0 right-0 flex items-center justify-center w-10 h-full text-white bg-purple-600 rounded-r-md hover:bg-purple-700 focus:outline-none"
+                                className="absolute inset-y-0 right-0 flex items-center justify-center w-10 h-full text-white bg-primary rounded-r-md hover:bg-primary/80 focus:outline-none"
                             >
-                                <IoSend className="text-lg" />
+                                <IoSend className="text-lg text-light-text" />
                             </button>
                         </div>
                     </div>

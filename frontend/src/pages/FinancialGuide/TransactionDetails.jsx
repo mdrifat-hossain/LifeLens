@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { MdExpandMore } from "react-icons/md";
 import {
     Chart as ChartJS,
     BarController,
@@ -104,37 +105,40 @@ function TransactionDetails() {
         <div className="container mx-auto p-8">
             <header className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-4xl font-bold text-indigo-600">Personal</h1>
-                    <p className="text-gray-500">Savings Account</p>
+                    <h1 className="text-4xl font-bold text-accent">Checking Account</h1>
                 </div>
                 <div className="text-right">
-                    <p className="text-3xl font-semibold">$152124.40</p>
-                    <p className="text-gray-500 text-sm">187 Transactions</p>
+                    <p className="text-3xl font-semibold dark:text-dark-text">$152124.40</p>
+                    <p className="text-gray-500 dark:text-dark-text/50 text-sm">187 Transactions</p>
                 </div>
             </header>
             <main>
-                <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
+                <div className="bg-light-background dark:bg-dark-background border-1 border-accent/30 p-6 rounded-lg shadow-lg mb-8">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-semibold text-gray-700">Transaction Overview</h2>
+                        <h2 className="text-xl font-semibold text-gray-700 dark:text-dark-text">Transaction Overview</h2>
                         <div className="relative">
-                            <button
-                                className="flex items-center text-gray-600 bg-gray-100 border border-gray-300 rounded-md px-4 py-2 text-sm">
-                                Last Month
-                                <span className="material-icons ml-2 text-sm">expand_more</span>
-                            </button>
+                            <select
+                                className="appearance-none bg-light-background dark:bg-dark-background border border-accent/70 text-gray-700 dark:text-dark-text py-2 px-4 pr-8 rounded-lg leading-tight focus:outline-none">
+                                <option>This Month</option>
+                                <option>Last Month</option>
+                            </select>
+                            <div
+                                className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <MdExpandMore className="text-gray-500" size={20} />
+                            </div>
                         </div>
                     </div>
                     <div className="flex justify-around mb-6">
                         <div>
-                            <p className="text-sm text-gray-500">Total Income</p>
+                            <p className="text-sm text-gray-500 dark:text-dark-text/50">Total Income</p>
                             <p className="text-2xl font-semibold text-green-500">$57378.46</p>
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500">Total Expenses</p>
+                            <p className="text-sm text-gray-500 dark:text-dark-text/50">Total Expenses</p>
                             <p className="text-2xl font-semibold text-red-500">$16118.94</p>
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500">Net</p>
+                            <p className="text-sm text-gray-500 dark:text-dark-text/50">Net</p>
                             <p className="text-2xl font-semibold text-green-500">$41259.52</p>
                         </div>
                     </div>
@@ -142,37 +146,34 @@ function TransactionDetails() {
 
                     <div className="w-full h-80 relative">
 
-                            <canvas ref={chartRef} id="transactionChart"></canvas>
+                        <canvas ref={chartRef} id="transactionChart"></canvas>
 
-                    </div>
-
-
-
-                    <div className="flex justify-center items-center mt-4">
-                        <div className="flex items-center mr-6">
-                            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                            <span className="text-sm text-gray-600">Income</span>
-                        </div>
-                        <div className="flex items-center">
-                            <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                            <span className="text-sm text-gray-600">Expense</span>
-                        </div>
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm">
+
+                <div className="bg-light-background dark:bg-dark-background p-6 rounded-lg shadow-lg border-1 border-accent/50">
                     <div className="flex justify-between items-center mb-4">
                         <div className="relative">
                             <span
                                 className="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">search</span>
-                            <input className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm w-80"
+                            <input className="pl-10 pr-4 py-2 border dark:text-dark-text border-accent/70 rounded-md text-sm w-80"
                                 placeholder="Search transactions..." type="text" />
                         </div>
-                        <div>
-                            <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm">All Types</button>
+                        <div className="relative">
+                            <select
+                                className="appearance-none bg-light-background dark:bg-dark-background border border-accent/70 text-gray-700 dark:text-dark-text py-2 px-4 pr-8 rounded-lg leading-tight focus:outline-none">
+                                <option>All Types</option>
+                                <option>Income</option>
+                                <option>Expense</option>
+                            </select>
+                            <div
+                                className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <MdExpandMore className="text-gray-500" size={20} />
+                            </div>
                         </div>
                     </div>
-                    <table className="w-full text-sm text-left text-gray-500">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                    <table className="w-full text-sm text-left bg-light-background dark:bg-dark-background">
+                        <thead className="text-xs text-gray-700 dark:text-dark-text/50 uppercase">
                             <tr>
                                 <th className="p-4" scope="col">
                                     <input className="rounded" type="checkbox" />
@@ -192,15 +193,15 @@ function TransactionDetails() {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr className="bg-white border-b hover:bg-gray-50">
+                            <tr className="bg-light-background dark:bg-dark-background border-b border-accent/30 dark:text-dark-text">
                                 <td className="p-4">
                                     <input className="rounded" type="checkbox" />
                                 </td>
                                 <td className="py-4 px-6">
                                     Dec 12, 2024
                                 </td>
-                                <td className="py-4 px-6 font-medium text-gray-900">
-                                    Flat Rent (Recurring)
+                                <td className="py-4 px-6 font-medium text-gray-900 dark:text-dark-text">
+                                    Flat Rent
                                 </td>
                                 <td className="py-4 px-6">
                                     <span
@@ -210,15 +211,15 @@ function TransactionDetails() {
                                     -$1500.00
                                 </td>
                             </tr>
-                            <tr className="bg-white border-b hover:bg-gray-50">
+                            <tr className="bg-light-background dark:bg-dark-background border-b border-accent/30 dark:text-dark-text">
                                 <td className="p-4">
                                     <input className="rounded" type="checkbox" />
                                 </td>
                                 <td className="py-4 px-6">
                                     Dec 8, 2024
                                 </td>
-                                <td className="py-4 px-6 font-medium text-gray-900">
-                                    Netflix (Recurring)
+                                <td className="py-4 px-6 font-medium text-gray-900 dark:text-dark-text">
+                                    Netflix
                                 </td>
                                 <td className="py-4 px-6">
                                     <span

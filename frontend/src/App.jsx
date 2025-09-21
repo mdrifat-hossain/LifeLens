@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import ClerkProviderWithRoutes from './auth/ClerkProviderWithRoute'
 import { Layout } from "./layout/Layout"
 import { AuthenticationPage } from "./auth/AuthenticationPage"

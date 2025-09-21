@@ -5,24 +5,21 @@ function DayMealCard({ title, details, image, recipe }) {
 
     return (
         <div className="p-4">
-            <div className="flex flex-col gap-4 rounded-xl bg-white shadow-lg p-6 transition-all duration-300">
+            <div className="flex flex-col gap-4 rounded-xl bg-light-background dark:bg-dark-background border-accent/50 border-1 shadow-lg p-6 transition-all duration-300">
                 <div className="flex items-stretch justify-between gap-4">
                     <div className="flex flex-[2_2_0px] flex-col gap-4">
                         <div className="flex flex-col gap-1">
-                            <p className="text-base font-bold">{title}</p>
-                            <p className="text-sm text-[#637488]">{details}</p>
+                            <p className="text-base font-bold text-light-text dark:text-dark-text">{title}</p>
+                            <p className="text-sm text-[#637488] dark:text-[#b4b4b4]">{details}</p>
                         </div>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setShowRecipe(!showRecipe)}
-                                className="bg-[#f0f2f4] text-sm font-medium rounded-xl h-8 px-4 w-fit inline-block"
+                                className="bg-accent text-dark-text mt-5 text-sm cursor-pointer font-medium rounded-xl h-8 px-4 w-fit inline-block"
                             >
                                 <span className="truncate">
                                     {showRecipe ? "Hide Recipe" : "View Recipe"}
                                 </span>
-                            </button>
-                            <button className="bg-[#f0f2f4] text-sm font-medium rounded-xl h-8 px-4 inline-block">
-                                Edit
                             </button>
                         </div>
                     </div>
@@ -39,8 +36,8 @@ function DayMealCard({ title, details, image, recipe }) {
                 >
                     {Array.isArray(recipe) && recipe.length > 0 ? (
                         <div className="space-y-2">
-                            <h3 className="text-lg font-semibold text-gray-800">Recipe</h3>
-                            <ol className="list-decimal list-inside space-y-1 text-gray-700">
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-dark-text/90">Recipe</h3>
+                            <ol className="list-decimal list-inside space-y-1 text-gray-700 dark:text-dark-text/70">
                                 {recipe.map((step, idx) => (
                                     <li key={idx}>{step}</li>
                                 ))}

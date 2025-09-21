@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApi } from "../../utils/api";
 import { infinity } from 'ldrs'
+import { UserButton } from "@clerk/clerk-react";
 infinity.register()
 
 function ChatPage() {
@@ -159,7 +160,7 @@ function ChatPage() {
 
 
 
-            <div className="min-h-screen bg-background text-text flex">
+            <div className="min-h-screen bg-background text-light-text dark:text-dark-text flex">
                 {/* ✅ Fixed Sidebar */}
                 <div className="fixed left-0  h-full w-[20%] bg-gradient-to-b from-secondary/10 to-background border-r border-secondary/20 flex flex-col">
                     <div className="p-6 pb-0">
@@ -173,7 +174,7 @@ function ChatPage() {
                             </div>
                         </div>
                         <button
-                            className="mb-8 w-full cursor-pointer bg-primary hover:bg-primary/90 text-background font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                            className="mb-8 w-full cursor-pointer bg-primary hover:bg-primary/90 text-background dark:text-light-text font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
                             onClick={() => {
                                 setMessages([{ sender: "assistant", message_content: "Hi 👋 How can I help you today?" }]);
                                 setInput("");
@@ -249,6 +250,7 @@ function ChatPage() {
                                             <p className="whitespace-pre-wrap break-words">
                                                 {msg.message_content}
                                             </p>
+                                            
                                         </motion.div>
                                         <div ref={messagesEndRef} />
                                     </div>
@@ -279,7 +281,7 @@ function ChatPage() {
                     {/* ✅ Fixed Input Box */}
                     <div
                         id="input-area"
-                        className="fixed bottom-0 left-[20%] w-[80%] border-t border-secondary/20 bg-background p-4"
+                        className="fixed bottom-0 left-[20%] w-[80%] border-t border-secondary/20 bg-light-background dark:bg-dark-background p-4"
                     >
                         <form
                             onSubmit={handleSend}
@@ -297,7 +299,7 @@ function ChatPage() {
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder="Ask me about budgeting, savings, or expense analysis..."
                                 className="no-scrollbar w-full bg-secondary/10 border border-secondary/20 rounded-2xl px-4 py-3 pr-12 
-                text-text placeholder-text/50 focus:outline-none focus:ring-2 focus:ring-primary 
+                text-light-text dark:text-dark-text placeholder-light-text/50 dark:placeholder-dark-text/50 focus:outline-none focus:ring-2 focus:ring-primary 
                 focus:border-transparent resize-none overflow-y-auto break-words whitespace-pre-wrap 
                 transition-all duration-200 ease-in-out"
                                 rows={1}
@@ -316,7 +318,7 @@ function ChatPage() {
                             {/* Send */}
                             <button
                                 id="send-btn"
-                                className="absolute right-5 bottom-2 w-8 h-8 bg-primary hover:bg-primary/90 text-background rounded-lg flex items-center justify-center transition-colors"
+                                className="absolute right-5 bottom-2 w-8 h-8 bg-primary hover:bg-primary/90 text-light-text rounded-lg flex items-center justify-center transition-colors"
                             >
                                 ➤
                             </button>
