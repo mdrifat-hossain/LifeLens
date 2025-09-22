@@ -48,6 +48,7 @@ function App() {
 					</Route>
 					<Route path='/financial-dashboard/*'>
 						<Route index element={<FinancialDashboard />} />
+						<Route path="financial-review" element={<TransactionDetails />} />
 					</Route>
 					<Route path='/financial-review/*'>
 						<Route index element={<TransactionDetails />} />

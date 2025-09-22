@@ -1,12 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Nata+Sans:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url("https://fonts.googleapis.com/css2?family=Nata+Sans:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
 @config "../tailwind.config.js";
 @import "tailwindcss";
 
 /* Custom Tailwind config should be placed in tailwind.config.js, not in CSS */
 
+html,
 body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
   font-family: "Plus Jakarta Sans", sans-serif;
 }
 
