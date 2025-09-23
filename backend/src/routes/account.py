@@ -106,26 +106,26 @@ async def add_account(request_obj: Request, body: dict, db_dep=Depends(get_db)):
 
 
 # Get transactions
-@router.get("/get-transactions")
-async def get_transactions(
-    request_obj: Request,
-    account_id: int | None = None,   # optional query param
-    db_dep=Depends(get_db)
-):
-    try:
-        cursor, conn = db_dep
-        user_details = authenticate_and_get_user_details(request_obj)
-        user_id = user_details["user_id"]
+# @router.get("/get-transactions")
+# async def get_transactions(
+#     request_obj: Request,
+#     account_id: int | None = None,   # optional query param
+#     db_dep=Depends(get_db)
+# ):
+#     try:
+#         cursor, conn = db_dep
+#         user_details = authenticate_and_get_user_details(request_obj)
+#         user_id = user_details["user_id"]
 
-        if account_id:
-            transactions = await account_db.get_transactions_by_account(cursor, user_id, account_id)
-        else:
-            transactions = await account_db.get_all_transactions(cursor, user_id)
+#         if account_id:
+#             transactions = await account_db.get_transactions_by_account(cursor, user_id, account_id)
+#         else:
+#             transactions = await account_db.get_all_transactions(cursor, user_id)
 
-        return {"transactions": transactions}
+#         return {"transactions": transactions}
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error in get_transactions: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Internal error in get_transactions: {str(e)}")
 
 
 # Get categories

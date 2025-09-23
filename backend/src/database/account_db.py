@@ -102,10 +102,11 @@ async def get_all_transactions(cursor, user_id):
 async def get_transactions_by_account(cursor, user_id, account_id):
     try:
         sql = """
-            SELECT t.transaction_ID, t.account_ID, t.amount, t.type, t.description, t.created_at, 
-                   a.account_name, t.category_ID
+            SELECT t.transaction_ID, t.amount, t.type, t.description, t.created_at, t.category_ID, c.category_name,
+                   a.account_name, t.account_ID
             FROM transactions t
             JOIN accounts a ON t.account_ID = a.account_ID
+            JOIN categories c ON t.category_ID = c.category_id
             WHERE a.user_id = %s AND t.account_ID = %s
             ORDER BY t.created_at DESC
         """
@@ -118,23 +119,23 @@ async def get_transactions_by_account(cursor, user_id, account_id):
 
 
 # Fetch transactions by account
-async def get_transactions_by_account(cursor, user_id, account_id):
-    try:
-        sql = """
-            SELECT t.transaction_ID, t.amount, t.type, t.description, t.created_at,
-                   a.account_name, t.account_ID
-            FROM transactions t
-            JOIN accounts a ON t.account_ID = a.account_ID
-            WHERE a.user_ID = %s AND t.account_ID = %s
-            ORDER BY t.created_at DESC
-        """
-        await cursor.execute(sql, (user_id, account_id))
-        transactions = await cursor.fetchall()
-        return transactions
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"DB error in get_transactions_by_account: {e}"
-        )
+# async def get_transactions_by_account(cursor, user_id, account_id):
+#     try:
+#         sql = """
+#             SELECT t.transaction_ID, t.amount, t.type, t.description, t.created_at,
+#                    a.account_name, t.account_ID
+#             FROM transactions t
+#             JOIN accounts a ON t.account_ID = a.account_ID
+#             WHERE a.user_ID = %s AND t.account_ID = %s
+#             ORDER BY t.created_at DESC
+#         """
+#         await cursor.execute(sql, (user_id, account_id))
+#         transactions = await cursor.fetchall()
+#         return transactions
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500, detail=f"DB error in get_transactions_by_account: {e}"
+#         )
 
 
 # Fetch all transactions for a user

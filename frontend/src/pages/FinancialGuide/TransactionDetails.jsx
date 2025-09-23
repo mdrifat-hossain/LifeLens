@@ -36,7 +36,7 @@ function TransactionDetails() {
     const [transactions, setTransactions] = useState([]);
     const [filter, setFilter] = useState("this_month");
     const [totals, setTotals] = useState({ income: 0, expenses: 0, net: 0 });
-    const [editTxn, setEditTxn] = useState(null); 
+    const [editTxn, setEditTxn] = useState(null);
     const [showModal, setShowModal] = useState(false);
 
     const [account, setAccount] = useState(null);
@@ -171,7 +171,7 @@ function TransactionDetails() {
 
 
     // Delete transaction
-    const handleDelete = async (txnId,accountID) => {
+    const handleDelete = async (txnId, accountID) => {
         if (!window.confirm("Are you sure you want to delete this transaction?")) return;
         try {
             await makeRequest(`delete-transaction/${txnId}`, { method: "DELETE" });
@@ -212,7 +212,7 @@ function TransactionDetails() {
             <header className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-4xl font-bold text-green-500 dark:text-dark-text">
-                        Checking Account - {account ? account.account_name : "Loading..."}
+                        {account ? account.account_name : "Loading..."}
                     </h1>
                 </div>
 
@@ -269,11 +269,11 @@ function TransactionDetails() {
                                     <td className="p-4"><input className="rounded" type="checkbox" /></td>
                                     <td className="py-4 px-6">{new Date(txn.created_at).toLocaleDateString()}</td>
                                     <td className="py-4 px-6 font-medium text-gray-900 dark:text-dark-text">{txn.description}</td>
-                                    <td className="py-4 px-6"><span className="bg-yellow-100 text-yellow-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">{txn.category_name|| "N/A"}</span></td>
+                                    <td className="py-4 px-6"><span className="bg-yellow-100 text-yellow-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">{txn.category_name || "N/A"}</span></td>
                                     <td className={`py-4 px-6 text-right font-medium ${txn.type === "DEBIT" ? "text-red-500" : "text-green-500"}`}>৳{parseFloat(txn.amount).toLocaleString()}</td>
                                     <td className="py-4 px-6 text-right space-x-2">
                                         <button onClick={() => handleEdit(txn)} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Edit</button>
-                                        <button onClick={() => handleDelete(txn.transaction_ID,txn.account_ID)} className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Delete</button>
+                                        <button onClick={() => handleDelete(txn.transaction_ID, txn.account_ID)} className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Delete</button>
                                     </td>
                                 </tr>
                             ))}
@@ -284,23 +284,53 @@ function TransactionDetails() {
 
             {/* Edit Modal */}
             {showModal && editTxn && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-light-background dark:bg-dark-background border-1 border-accent/70 text-light-text dark:text-dark-text p-6 rounded-lg w-96">
+                <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                    <div className="bg-light-background dark:bg-dark-background border border-accent/70 text-light-text dark:text-dark-text p-6 rounded-lg w-96">
                         <h2 className="text-lg font-semibold mb-4">Edit Transaction</h2>
-                        <input className="w-full mb-2 p-2 border rounded" value={editTxn.amount} onChange={e => setEditTxn({ ...editTxn, amount: e.target.value })} placeholder="Amount" />
-                        <input className="w-full mb-2 p-2 border rounded" value={editTxn.description} onChange={e => setEditTxn({ ...editTxn, description: e.target.value })} placeholder="Description" />
-                        <select className="w-full mb-2 p-2 border rounded" value={editTxn.type} onChange={e => setEditTxn({ ...editTxn, type: e.target.value })}>
+                        <input
+                            className="w-full mb-2 p-2 border rounded"
+                            value={editTxn.amount}
+                            onChange={e => setEditTxn({ ...editTxn, amount: e.target.value })}
+                            placeholder="Amount"
+                        />
+                        <input
+                            className="w-full mb-2 p-2 border rounded"
+                            value={editTxn.description}
+                            onChange={e => setEditTxn({ ...editTxn, description: e.target.value })}
+                            placeholder="Description"
+                        />
+                        <select
+                            className="w-full mb-2 p-2 border rounded"
+                            value={editTxn.type}
+                            onChange={e => setEditTxn({ ...editTxn, type: e.target.value })}
+                        >
                             <option value="CREDIT">Income</option>
                             <option value="DEBIT">Expense</option>
                         </select>
-                        <input className="w-full mb-2 p-2 border rounded" value={editTxn.category_ID || ""} onChange={e => setEditTxn({ ...editTxn, category_ID: e.target.value })} placeholder="Category ID" />
+                        <input
+                            className="w-full mb-2 p-2 border rounded"
+                            value={editTxn.category_ID || ""}
+                            onChange={e => setEditTxn({ ...editTxn, category_ID: e.target.value })}
+                            placeholder="Category ID"
+                        />
                         <div className="flex justify-end space-x-2">
-                            <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded border">Cancel</button>
-                            <button onClick={submitEdit} className="px-4 py-2 rounded bg-blue-500 text-white">Save</button>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="px-4 py-2 rounded border"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={submitEdit}
+                                className="px-4 py-2 rounded bg-blue-500 text-white"
+                            >
+                                Save
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
+
         </div>
     );
 }

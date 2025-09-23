@@ -129,3 +129,89 @@ async def delete_task(cursor, conn, task_id, user_id):
         await redis_db_services.get_tasks(user_id, cursor)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"DB error in get_all_chats: {e}")
+
+
+async def update_routine(cursor, conn, user_id: int, data: dict):
+    try:
+        routine_id = data.get("routine_id")  # extract routine_id from data
+        if not routine_id:
+            raise HTTPException(status_code=400, detail="routine_id is required")
+
+        # print("✅Updating routine in db:", data)
+        
+        # Check routine ownership
+        await cursor.execute(
+            "SELECT user_id FROM weekly_routines WHERE routine_id=%s", (routine_id,)
+        )
+        routine = await cursor.fetchone()
+        if not routine:
+            raise HTTPException(status_code=404, detail="Routine not found")
+        if routine["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+        # Update weekly_routines table
+        await cursor.execute(
+            """
+            UPDATE weekly_routines
+            SET routine_name=%s, start_time=%s, end_time=%s, color=%s, description=%s
+            WHERE routine_id=%s
+            """,
+            (
+                data["routine_name"],
+                data["start_time"],
+                data["end_time"],
+                data["color"],
+                data["description"],
+                routine_id,
+            ),
+        )
+
+        # Delete old routine_days
+        await cursor.execute("DELETE FROM routine_days WHERE routine_id=%s", (routine_id,))
+
+        # Insert new selected days
+        for day in data["selected_days"]:
+            await cursor.execute(
+                "INSERT INTO routine_days (routine_id, day_of_week) VALUES (%s, %s)",
+                (routine_id, day),
+            )
+
+        await conn.commit()
+        await clear_user_cache(user_id, "get_user_routines")
+        await redis_db_services.get_user_routines(user_id, cursor)
+        
+        return {"message": "Routine updated successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DB error in update_routine: {e}")
+
+
+
+async def delete_routine(cursor, conn, user_id: int, routine_id: int):
+    try:
+        # Check routine ownership
+        await cursor.execute(
+            "SELECT user_id FROM weekly_routines WHERE routine_id=%s", (routine_id,)
+        )
+        routine = await cursor.fetchone()
+        if not routine:
+            raise HTTPException(status_code=404, detail="Routine not found")
+        if routine["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+        # Delete routine_days first
+        await cursor.execute("DELETE FROM routine_days WHERE routine_id=%s", (routine_id,))
+        # Delete routine
+        await cursor.execute("DELETE FROM weekly_routines WHERE routine_id=%s", (routine_id,))
+
+        await conn.commit()
+        await clear_user_cache(user_id, "get_user_routines")
+        await redis_db_services.get_user_routines(user_id, cursor)
+        return {"message": "Routine deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DB error in delete_routine: {e}")

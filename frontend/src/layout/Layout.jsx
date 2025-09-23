@@ -23,11 +23,13 @@ export function Layout() {
                 <div className="flex flex-1 justify-end gap-8">
                     <div className="flex items-center gap-9 text-light-text dark:text-dark-text text-sm font-medium leading-normal">
                         <SignedIn>
-                            <Link to="/">Dashboard</Link>
+                            <Link to="/dashboard">Dashboard</Link>
                             <Link to="/meal-plan">Food & Planning</Link>
                             <Link to="/manage-day">Manage Day</Link>
                             <Link to="/financial-dashboard">Finance</Link>
-                            <Link to="/financial-review">Review</Link>
+                            <Link to="/career-path">Carrer</Link>
+                            {/* <Link to="/financial-review">Review</Link> */}
+                            <Link to="/email">Email</Link>
 
                             {/* Option 1: Fixed UserButton with proper Action */}
                             <UserButton afterSignOutUrl="/">

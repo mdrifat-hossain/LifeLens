@@ -12,8 +12,13 @@ import RoutineDashboard from './pages/Routine/RoutineDashboard'
 import RoutineEdit from './pages/Routine/RoutineEdit'
 import FinancialDashboard from './pages/FinancialGuide/FinancialDashboard'
 import TransactionDetails from './pages/FinancialGuide/TransactionDetails'
+import Email from './pages/Email/email'
+import CareerDashboard from './pages/careerPath/CareerDashboard'
+import SkillTrend from './pages/careerPath/SkillTrend'
+
 
 import './App.css'
+import LandingPage from './pages/landingPage/LandingPage'
 
 function ProtectedMealPlan() {
 	const isNewUser = false; // fake flag for now
@@ -30,10 +35,11 @@ function App() {
 	return (
 		<ClerkProviderWithRoutes>
 			<Routes>
+				<Route path="/" element={<LandingPage />} />
 				<Route path="/sign-in/*" element={<AuthenticationPage />} />
 				<Route path="/sign-up" element={<AuthenticationPage />} />
 				<Route element={<Layout />}>
-					<Route path="/" />
+					<Route path="/dashboard/*" />
 					<Route path="/chat" element={<ChatPage />} />   {/* now safe */}
 					<Route path="/meal-survey" element={<MealSurvey />} />
 					<Route path="/meal-plan/*" element={<ProtectedMealPlan />}>
@@ -50,8 +56,15 @@ function App() {
 						<Route index element={<FinancialDashboard />} />
 						<Route path="financial-review" element={<TransactionDetails />} />
 					</Route>
-					<Route path='/financial-review/*'>
+					{/* <Route path='/financial-review/*'>
 						<Route index element={<TransactionDetails />} />
+					</Route> */}
+					<Route path='/email/*'>
+						<Route index element={<Email />} />
+					</Route>
+					<Route path='/career-path/*'>
+						<Route index element={<CareerDashboard />} />
+						<Route path="skills-trend" element={<SkillTrend />} />
 					</Route>
 				</Route>
 			</Routes>

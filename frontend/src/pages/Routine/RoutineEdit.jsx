@@ -309,6 +309,7 @@ function RoutineEdit() {
             color: "blue",
             description: "",
         });
+        setIsEditing(false);
     };
 
     const splitTaskByHour = (task) => {
@@ -644,6 +645,64 @@ function RoutineEdit() {
     };
 
 
+    const handleUpdateRoutine = async (routineId) => {
+        console.log("Updating routine ID: with data:", formData.routineId);
+        try {
+            const data = await makeRequest(`update-routine`, {
+                method: "PUT",
+                body: JSON.stringify({
+                    routine_id: formData.routineId,
+                    routine_name: formData.routineName,
+                    selected_days: formData.selectedDays,
+                    start_time: formData.startTime,
+                    end_time: formData.endTime,
+                    color: formData.color,
+                    description: formData.description,
+                }),
+            });
+
+            alert(data.message);
+
+            setFormData({
+                day: "",
+                routineName: "",
+                selectedDays: [],
+                startTime: "",
+                endTime: "",
+                color: "blue",
+                description: "",
+            });
+        } catch (err) {
+            console.error(err);
+            alert(err.message || "Failed to update routine");
+        }
+    };
+
+    const handleDeleteRoutine = async (routineId) => {
+        try {
+            console.log("Deleting routine ID:", formData.routineId);
+            const data = await makeRequest(`delete-routine/${formData.routineId}`, {
+                method: "DELETE",
+            });
+            alert(data.message);
+
+            setFormData({
+                day: "",
+                routineName: "",
+                selectedDays: [],
+                startTime: "",
+                endTime: "",
+                color: "blue",
+                description: "",
+            });
+        } catch (err) {
+            console.error(err);
+            alert(err.message || "Failed to delete routine");
+        }
+    };
+
+
+
 
 
 
@@ -803,14 +862,14 @@ function RoutineEdit() {
                                     </button>
                                     <button
                                         type="button"
-                                        // onClick={handleUpdateRoutine}
+                                        onClick={handleUpdateRoutine}
                                         className="py-2 px-4 rounded-md text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600"
                                     >
                                         Update
                                     </button>
                                     <button
                                         type="button"
-                                        // onClick={handleDeleteRoutine}
+                                        onClick={handleDeleteRoutine}
                                         className="py-2 px-4 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
                                     >
                                         Delete
@@ -923,7 +982,7 @@ function RoutineEdit() {
                     </div>
 
 
-                    
+
                 </div>
                 {showAIHelp && (
                     <div className="bg-light-background dark:bg-dark-background border-1 border-accent/70 rounded-lg p-6 flex flex-col flex-1">

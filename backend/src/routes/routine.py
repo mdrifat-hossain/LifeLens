@@ -124,3 +124,30 @@ async def delete_task(request_obj: Request, task_id: int, db_dep=Depends(get_db)
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting task: {str(e)}")
+
+
+@router.put("/update-routine")
+async def update_routine_route(data: dict, request_obj: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details["user_id"]
+        # print("✅Update routine data received in routin:", data)
+        result = await routine_db.update_routine(cursor, conn, user_id, data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error in update_routine: {str(e)}")
+
+
+@router.delete("/delete-routine/{routine_id}")
+async def delete_routine_route(routine_id: int, request_obj: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details["user_id"]
+
+        print("✅ Deleting routine_id:", routine_id, "for user:", user_id)
+        result = await routine_db.delete_routine(cursor, conn, user_id, routine_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error in delete_routine: {str(e)}")
