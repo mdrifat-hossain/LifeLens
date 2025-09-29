@@ -5,7 +5,7 @@ export interface Email {
   to: string;
   subject: string;
   body: string;
-  timestamp: Date;
+  timestamp: String;
   isRead: boolean;
   isImportant: boolean;
   isStarred: boolean;

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from "react-router-dom";
 import { FaArrowRightLong } from "react-icons/fa6";
+import { BsStars } from "react-icons/bs";
 
 function CareerDashboard() {
     return (
@@ -30,8 +31,19 @@ function CareerDashboard() {
                 <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-semibold text-gray-800">Learning Roadmap</h2>
-                        <a className="text-sm font-medium text-indigo-600 hover:text-indigo-500" href="#">View All</a>
+                        <Link
+                            to="learning-path" // 👈 your route here
+                            className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-indigo-300 
+               text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition"
+                        >
+                            <BsStars className="text-green-500 text-lg" />
+                            <span>
+                                View all & <span className="text-green-600 font-semibold">AI</span> help
+                            </span>
+                            <span className="material-icons text-base text-indigo-600">arrow_forward</span>
+                        </Link>
                     </div>
+
                     <div className="space-y-8 relative">
                         <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"></div>
                         <div className="flex items-start">

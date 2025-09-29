@@ -1,25 +1,48 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { UserButton } from "@clerk/clerk-react";
 import { Outlet, Link, Navigate } from "react-router-dom";
-import ChatWidget from '../pages/chat/ChatWidget';
+import ChatWidget from "../pages/chat/ChatWidget";
 import { useTheme } from "./useTheme";
 
 export function Layout() {
     const { darkMode, setDarkMode } = useTheme();
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 20) {
+                setScrolled(true);
+            } else {
+                setScrolled(false);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
     return (
         <div className="app-layout bg-light-background dark:bg-dark-background">
-            <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-b-[#f0f2f4] dark:border-b-[#0d3025] px-10 py-3 bg-light-background dark:bg-dark-background shadow-md">
+            {/* Header */}
+            <header
+                className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-10 py-3 transition-all duration-300 ${scrolled
+                        ? "bg-white/50 dark:bg-dark-background/50 backdrop-blur-md shadow-md border-b border-gray-200 dark:border-gray-800"
+                        : "bg-transparent"
+                    }`}
+            >
+                {/* Logo */}
                 <div className="flex items-center gap-4">
-                    <Link to="/">
+                    <Link to="/dashboard">
                         <h2 className="text-lg font-bold text-[#111418] dark:text-dark-text">
                             LifeLens
                         </h2>
                     </Link>
                 </div>
 
+                {/* Navigation + User */}
                 <div className="flex flex-1 justify-end gap-8">
                     <div className="flex items-center gap-9 text-light-text dark:text-dark-text text-sm font-medium leading-normal">
                         <SignedIn>
@@ -27,11 +50,10 @@ export function Layout() {
                             <Link to="/meal-plan">Food & Planning</Link>
                             <Link to="/manage-day">Manage Day</Link>
                             <Link to="/financial-dashboard">Finance</Link>
-                            <Link to="/career-path">Carrer</Link>
-                            {/* <Link to="/financial-review">Review</Link> */}
+                            <Link to="/career-path">Career</Link>
                             <Link to="/email">Email</Link>
 
-                            {/* Option 1: Fixed UserButton with proper Action */}
+                            {/* User + Theme Toggle in Menu */}
                             <UserButton afterSignOutUrl="/">
                                 <UserButton.MenuItems>
                                     <UserButton.Action
@@ -41,20 +63,10 @@ export function Layout() {
                                     />
                                 </UserButton.MenuItems>
                             </UserButton>
-
-                            {/* Option 2: Alternative approach with separate theme toggle button */}
-                            {/* 
-                            <button 
-                                onClick={() => setDarkMode((prev) => !prev)}
-                                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                                {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
-                            </button>
-                            <UserButton afterSignOutUrl="/" />
-                            */}
                         </SignedIn>
                     </div>
 
+                    {/* Avatar Placeholder */}
                     <div
                         className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10"
                         style={{ backgroundImage: `url('...your image url...')` }}

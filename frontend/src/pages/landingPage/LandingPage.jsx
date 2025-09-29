@@ -1,7 +1,14 @@
 import React from 'react'
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 
+import { FaProjectDiagram } from "react-icons/fa";
+import { GiPathDistance } from "react-icons/gi";
+import { GiHotMeal } from "react-icons/gi";
+import { MdLocalGroceryStore } from "react-icons/md";
+import { IoTimerSharp } from "react-icons/io5";
+import trackerIcon from '../../assets/tracker-icon.png';
 
 const faqs = [
     {
@@ -24,68 +31,84 @@ const faqs = [
 
 export default function LandingPage() {
     const [openIndex, setOpenIndex] = useState(null);
+    const [scrolled, setScrolled] = useState(false);
 
     const toggleFAQ = (index) => {
         setOpenIndex(openIndex === index ? null : index);
     };
 
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 20) {
+                setScrolled(true);
+            } else {
+                setScrolled(false);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
     return (
-        <body class="bg-emerald-100 text-text-dark font-display">
+        <body class="bg-emerald-50 text-text-dark font-display">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <header className="py-6 flex justify-between items-center">
-                    <div className="flex items-center space-x-2">
-                        {/* <span className="material-icons text-primary text-3xl"></span> */}
-                        <h1 className="text-2xl font-bold">LifeLens</h1>
-                    </div>
-                    <nav className="hidden md:flex items-center space-x-8">
-                        <a
-                            className="text-sm text-text-secondary-dark hover:text-text-dark"
-                            href="#"
-                        >
-                            Features
-                        </a>
-                        <a
-                            className="text-sm text-text-secondary-dark hover:text-text-dark"
-                            href="#"
-                        >
-                            How it works
-                        </a>
-                        <a
-                            className="text-sm text-text-secondary-dark hover:text-text-dark"
-                            href="#"
-                        >
-                            Testimonials
-                        </a>
-                        <a
-                            className="text-sm text-text-secondary-dark hover:text-text-dark"
-                            href="#"
-                        >
-                            Pricing
-                        </a>
-                        <a
-                            className="text-sm text-text-secondary-dark hover:text-text-dark"
-                            href="#"
-                        >
-                            FAQ
-                        </a>
-                    </nav>
-                    <div className="flex items-center space-x-4">
-                        <Link
-                            className="text-sm text-text-secondary-dark hover:text-text-dark hidden md:block"
-                            to="/sign-in"
-                        >
-                            Login
-                        </Link>
-                        <Link
-                            className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium"
-                            to="/sign-up"
-                        >
-                            Sign up
-                        </Link>
+                <header
+                    className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled
+                            ? "bg-white/50 backdrop-blur-md shadow-md"
+                            : "bg-transparent"
+                        }`}
+                >
+                    <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                            <h1 className="text-2xl font-bold">LifeLens</h1>
+                        </div>
+
+                        <nav className="hidden md:flex items-center space-x-8">
+                            <a
+                                className="text-sm text-text-secondary-dark hover:text-text-dark"
+                                href="#"
+                            >
+                                Features
+                            </a>
+                            <a
+                                className="text-sm text-text-secondary-dark hover:text-text-dark"
+                                href="#"
+                            >
+                                How it works
+                            </a>
+                            <a
+                                className="text-sm text-text-secondary-dark hover:text-text-dark"
+                                href="#"
+                            >
+                                Testimonials
+                            </a>
+                            <a
+                                className="text-sm text-text-secondary-dark hover:text-text-dark"
+                                href="#"
+                            >
+                                FAQ
+                            </a>
+                        </nav>
+
+                        <div className="flex items-center space-x-4">
+                            <Link
+                                className="text-sm text-text-secondary-dark hover:text-text-dark hidden md:block"
+                                to="/sign-in"
+                            >
+                                Login
+                            </Link>
+                            <Link
+                                className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium"
+                                to="/sign-up"
+                            >
+                                Sign up
+                            </Link>
+                        </div>
                     </div>
                 </header>
                 <main>
-                    <section className="">
+                    <section className="pt-30">
                         <div className="grid md:grid-cols-2 gap-12 items-center">
                             <div className="space-y-6">
                                 {/* <div className="inline-flex items-center bg-card-dark/50 text-text-secondary-dark text-sm font-medium px-3 py-1 rounded-full">
@@ -101,7 +124,12 @@ export default function LandingPage() {
                                 </p>
                                 <div className="flex items-center space-x-4 pt-4">
                                     <button className="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-6 rounded-lg flex items-center">
-                                        Get Started with LifeLens
+                                        <Link
+                                            className=""
+                                            to="/sign-in"
+                                        >
+                                            Get Started with LifeLens
+                                        </Link>
                                         <span className="material-icons text-xl ml-2">
                                             arrow_forward
                                         </span>
@@ -136,17 +164,17 @@ export default function LandingPage() {
                                         <span className="material-icons text-primary text-lg">security</span>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-text-secondary-dark">Security Level</p>
+                                        <p className="text-sm text-text-secondary-dark"> Data Protection Level</p>
                                         <p className="font-bold text-white">Enterprise</p>
                                     </div>
                                 </div>
 
                                 {/* 24h Change Card - bottom-right, partially outside */}
-                                <div className="absolute -bottom-8 -right-8 bg-card-dark/80 backdrop-blur-sm p-4 rounded-lg shadow-lg max-w-xs">
-                                    <p className="text-sm text-text-secondary-dark">24h Change</p>
-                                    <div className="flex items-center text-green-400 font-bold mt-1">
+                                <div className="absolute -bottom-3 -right-3 bg-card-dark/80 backdrop-blur-sm p-4 rounded-lg shadow-lg max-w-xs">
+                                    <div className="flex items-center text-green-600 font-bold mt-1">
+                                        <p className="text-sm text-text-secondary-dark">Daily Productivity</p>
                                         <span className="material-icons text-lg mr-1">arrow_upward</span>
-                                        <p>+12.34%</p>
+                                        <p></p>
                                     </div>
                                 </div>
                             </div>
@@ -164,50 +192,56 @@ export default function LandingPage() {
                         </div>
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                             <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                <span className="material-icons text-primary text-3xl">
+                                {/* <span className="material-icons text-primary text-3xl">
                                     timeline
-                                </span>
+                                </span> */}
+                                <GiHotMeal className="text-primary text-3xl" />
                                 <h4 className="font-bold text-xl mt-4"> Meal Plan Assistant</h4>
                                 <p className="text-text-secondary-dark mt-2">
                                     Suggests daily meals based on health, preferences, and available ingredients
                                 </p>
                             </div>
                             <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                <span className="material-icons text-primary text-3xl">shield</span>
+                                {/* <span className="material-icons text-primary text-3xl">shield</span> */}
+                                <MdLocalGroceryStore className="text-primary text-3xl" />
                                 <h4 className="font-bold text-xl mt-4">Smart Grocery Planner</h4>
                                 <p className="text-text-secondary-dark mt-2">
                                     Builds weekly grocery lists using budget, image uploads, or manual input
                                 </p>
                             </div>
                             <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                <span className="material-icons text-primary text-3xl">bolt</span>
+                                {/* <span className="material-icons text-primary text-3xl">bolt</span> */}
+                                <IoTimerSharp className="text-primary text-3xl" />
                                 <h4 className="font-bold text-xl mt-4"> Time Manager</h4>
                                 <p className="text-text-secondary-dark mt-2">
                                     Creates routines and suggests recreational breaks
                                 </p>
                             </div>
                             <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                <span className="material-icons text-primary text-3xl">
+                                {/* <span className="material-icons text-primary text-3xl">
                                     pie_chart
-                                </span>
+                                </span> */}
+                                <GiPathDistance className="text-primary text-3xl" />
                                 <h4 className="font-bold text-xl mt-4">Career Path Advisor </h4>
                                 <p className="text-text-secondary-dark mt-2">
                                     Recommends jobs, internships, and learning paths based on your profile
                                 </p>
                             </div>
                             <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                <span className="material-icons text-primary text-3xl">
+                                {/* <span className="material-icons text-primary text-3xl">
                                     notifications
-                                </span>
+                                </span> */}
+                                <FaProjectDiagram className="text-primary text-3xl" />
                                 <h4 className="font-bold text-xl mt-4">Project Generator</h4>
                                 <p className="text-text-secondary-dark mt-2">
                                     Proposes new project ideas based on recently learned skills
                                 </p>
                             </div>
                             <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                <span className="material-icons text-primary text-3xl">
+                                {/* <span className="material-icons text-primary text-3xl">
                                     ac_unit
-                                </span>
+                                </span> */}
+                                <img src={trackerIcon} alt="Financial Tracker" className='text-3xl' />
                                 <h4 className="font-bold text-xl mt-4">Financial Tracker</h4>
                                 <p className="text-gray-700 mt-2">
                                     Analyzes spending and offers saving strategies
@@ -257,12 +291,18 @@ export default function LandingPage() {
                             </div>
                         </div>
                         <div className="text-center mt-12">
-                            <a
+                            <Link
+                                className="bg-primary text-white px-6 py-3 rounded-lg font-medium"
+                                to="/sign-in"
+                            >
+                                Get Started with LifeLens
+                            </Link>
+                            {/* <a
                                 className="bg-primary text-white px-6 py-3 rounded-lg font-medium"
                                 href="#"
                             >
                                 Get Started Now
-                            </a>
+                            </a> */}
                         </div>
                     </section>
                     <section className="py-20">

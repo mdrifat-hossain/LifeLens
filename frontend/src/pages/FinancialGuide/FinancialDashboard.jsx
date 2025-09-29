@@ -644,7 +644,8 @@ function FinancialDashboard() {
                                 >
                                     <option value="all">All Accounts</option>
                                     {accounts.map((acc) => (
-                                        <option key={acc.account_id} value={acc.account_id}>
+                                        <option key={acc.account_id} value={acc.account_id} 
+                                        className="bg-light-background text-light-text dark:bg-light-background/20 dark:text-dark-text">
                                             {acc.account_name}
                                         </option>
                                     ))}

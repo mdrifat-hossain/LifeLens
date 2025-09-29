@@ -19,6 +19,14 @@ import SkillTrend from './pages/careerPath/SkillTrend'
 
 import './App.css'
 import LandingPage from './pages/landingPage/LandingPage'
+import Dashboard from './pages/dashboard/Dashboard'
+import LearningPathList from './pages/careerPath/LearningPathList'
+import PathDetails from './pages/careerPath/PathDetails'
+import CareerDashboardLayout from './pages/careerPath/CareerDashboardLayout'
+import LearningPathLayout from './pages/careerPath/LearningPathLayout'
+import PathDetailsLayout from './pages/careerPath/PathDetailsLayout'
+import AiHelp from './pages/careerPath/AiHelp'
+
 
 function ProtectedMealPlan() {
 	const isNewUser = false; // fake flag for now
@@ -39,7 +47,7 @@ function App() {
 				<Route path="/sign-in/*" element={<AuthenticationPage />} />
 				<Route path="/sign-up" element={<AuthenticationPage />} />
 				<Route element={<Layout />}>
-					<Route path="/dashboard/*" />
+					<Route path="/dashboard" element={<Dashboard />} />
 					<Route path="/chat" element={<ChatPage />} />   {/* now safe */}
 					<Route path="/meal-survey" element={<MealSurvey />} />
 					<Route path="/meal-plan/*" element={<ProtectedMealPlan />}>
@@ -62,10 +70,20 @@ function App() {
 					<Route path='/email/*'>
 						<Route index element={<Email />} />
 					</Route>
-					<Route path='/career-path/*'>
+
+					<Route path="/career-path" element={<CareerDashboardLayout />}>
 						<Route index element={<CareerDashboard />} />
 						<Route path="skills-trend" element={<SkillTrend />} />
+
+						<Route path="learning-path" element={<LearningPathLayout />}>
+							<Route index element={<LearningPathList />} />
+							<Route path="path-details" element={<PathDetailsLayout />}>
+								<Route index element={<PathDetails />} />
+								<Route path="ai-help" element={<AiHelp />} />
+							</Route>
+						</Route>
 					</Route>
+
 				</Route>
 			</Routes>
 		</ClerkProviderWithRoutes>

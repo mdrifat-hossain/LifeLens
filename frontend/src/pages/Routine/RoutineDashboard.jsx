@@ -394,7 +394,7 @@ function RoutineDashboard() {
                                             <p className="text-gray-500 dark:text-dark-text/60">No routine right now</p>
                                         )}
                                         {/* Time left in the day */}
-                                        <p className="mt-2 text-gray-600 dark:text-dark-text/60">
+                                        <p className="mt-2 text-green-600 dark:text-green-text/60">
                                             ⏳ Time left today:{" "}
                                             <span className="font-medium">{hoursLeft}h {minsLeft}m</span>
                                         </p>
