@@ -1,149 +1,240 @@
 import React from 'react'
+import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from 'react';
+import { useApi } from "../../utils/api";
+import { RiRobot3Fill } from "react-icons/ri";
+
 
 function AiHelp() {
+    const queryParams = new URLSearchParams(location.search);
+    const pathId = queryParams.get("path_Id");
+    const { makeRequest } = useApi();
+
+    const [paths, setPaths] = useState();
+
+    useEffect(() => {
+        console.log("Path ID in AI Help:", pathId);
+        const fetchPath = async () => {
+            try {
+                const res = await makeRequest(`get-learning-path/${pathId}`, {
+                    method: "GET"
+                });
+                console.log("Fetched Path in AIchat:", res);
+                setPaths(res);
+            } catch (err) {
+                console.error("Error fetching path:", err);
+            }
+        };
+
+        if (pathId) fetchPath();
+    }, [pathId]);
+
+    const [messages, setMessages] = useState([
+        {
+            role: "assistant",
+            content:
+                "Hi there! I'm here to help you create a personalized learning path. What career are you interested in pursuing?",
+        },
+    ]);
+    const [input, setInput] = useState("");
+
+    const handleSend = async () => {
+        if (!input.trim()) return;
+
+        // Add user message locally
+        const newMessages = [
+            ...messages,
+            { role: "user", content: input.trim() },
+        ];
+        setMessages(newMessages);
+        setInput("");
+
+        try {
+            // Send conversation to backend
+            const res = await makeRequest("career-ai-help", {
+                method: "POST",
+                body: JSON.stringify({
+                    path_id: pathId,
+                    conversation: newMessages, // Send full conversation history
+                }),
+            });
+
+            if (res?.ai_reply) {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        role: "assistant",
+                        content: res.ai_reply.raw_text, // fallback text
+                        structured: res.ai_reply       // keep parsed data
+                    },
+                ]);
+            }
+
+
+        } catch (err) {
+            console.error("❌ Error sending message:", err);
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
+    const [acceptedPath, setAcceptedPath] = useState(null);
+    const handleAddItem = async () => {
+        if (!acceptedPath) return;
+
+        try {
+            console.log("✅ Accepted Path to add:", acceptedPath);
+            const res = await makeRequest(`add-ai-learning-path/${pathId}`, {
+                method: "POST",
+                body: JSON.stringify({
+                    path: acceptedPath,
+                }),
+            });
+
+            if (res.success) {
+                alert("Learning path added successfully!");
+            } else {
+                alert("Failed to add learning path");
+            }
+        } catch (err) {
+            console.error("❌ Error adding learning path:", err);
+        }
+    };
+
+
     return (
         <div className="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200 flex h-[calc(100vh-4rem)] flex-col">
             <main className="flex flex-1 overflow-hidden">
                 <div className="flex flex-1 flex-col">
-                    <div className="flex-1 overflow-y-auto p-6">
+                    <div className="flex-1 overflow-y-auto pl-6 pr-6 pb-6">
+                        {/* <div className="sticky top-0 z-20 w-full bg-background-light dark:bg-background-dark pb-5">
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                                AI Career Path Chat
+                            </h1>
+                        </div> */}
                         <div className="mb-6">
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                                 AI Career Path Chat
                             </h1>
                         </div>
                         <div className="flex flex-col gap-6">
-                            <div className="flex items-start gap-4">
+                            {messages.map((msg, idx) => (
                                 <div
-                                    className="h-10 w-10 shrink-0 rounded-full bg-cover bg-center"
-                                    style={{
-                                        backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuC99Yg6KBk4xqV3RuPK6y1mlV2KAhPyEqd_IMUuQhzfIduUTSWY0uwg2yQTgqxwo9n8nUnfDGNH1fPrEVXABcP6Y-TvUPoiZKYFiKmGk2RoZYt6IBVrFA_daKYaGirDbxB3ALYjpQHmJGOtNidSuHkkHHFljk1k4ZgsNSAmRXOHKWxj4_cOl0BFyXnEAIL4STngkaZa-B398ZT-ql8YtoSD94QjTxYw64aCoM3GNOI-6C8f6Yx2gjlWwv2JTeiyIFVTwsM45F435NU')`
-                                    }}
-                                ></div>
+                                    key={idx}
+                                    className={`flex items-start gap-4 ${msg.role === "user" ? "justify-end" : ""}`}
+                                >
+                                    {msg.role === "assistant" && (
+                                        <div className="h-10 w-10 shrink-0 rounded-full bg-gray-400">
+                                            <RiRobot3Fill className="h-10 w-10 p-2 text-black" />
+                                        </div>
+                                    )}
 
-                                <div className="flex flex-col items-start gap-2">
-                                    <span
-                                        className="text-sm font-medium text-gray-500 dark:text-gray-400"
-                                    >AI Assistant</span>
                                     <div
-                                        className="max-w-md rounded-lg bg-gray-100 px-4 py-3 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
+                                        className={`max-w-2xl rounded-lg px-4 py-3 ${msg.role === "assistant"
+                                            ? "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
+                                            : "bg-primary text-white"
+                                            }`}
                                     >
-                                        <p>
-                                            Hi there! I'm here to help you create a personalized
-                                            learning path. What career are you interested in pursuing?
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-start justify-end gap-4">
-                                <div className="flex flex-col items-end gap-2">
-                                    <span
-                                        className="text-sm font-medium text-gray-500 dark:text-gray-400"
-                                    >Sophia</span>
-                                    <div
-                                        className="max-w-md rounded-lg bg-primary px-4 py-3 text-white"
-                                    >
-                                        <p>I'm interested in becoming a Data Scientist.</p>
-                                    </div>
-                                </div>
-                                <div
-                                    className="h-10 w-10 shrink-0 rounded-full bg-cover bg-center"
-                                    style={{
-                                        backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuC99Yg6KBk4xqV3RuPK6y1mlV2KAhPyEqd_IMUuQhzfIduUTSWY0uwg2yQTgqxwo9n8nUnfDGNH1fPrEVXABcP6Y-TvUPoiZKYFiKmGk2RoZYt6IBVrFA_daKYaGirDbxB3ALYjpQHmJGOtNidSuHkkHHFljk1k4ZgsNSAmRXOHKWxj4_cOl0BFyXnEAIL4STngkaZa-B398ZT-ql8YtoSD94QjTxYw64aCoM3GNOI-6C8f6Yx2gjlWwv2JTeiyIFVTwsM45F435NU')`
-                                    }}
-                                ></div>
+                                        {/* AI structured reply */}
+                                        {msg.role === "assistant" && msg.structured ? (
+                                            <div className="space-y-6">
+                                                <h2 className="text-xl font-bold">{msg.structured.path_title}</h2>
 
-                            </div>
-                            <div className="flex items-start gap-4">
-                                <div
-                                    className="h-10 w-10 shrink-0 rounded-full bg-cover bg-center"
-                                    style={{
-                                        backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuC99Yg6KBk4xqV3RuPK6y1mlV2KAhPyEqd_IMUuQhzfIduUTSWY0uwg2yQTgqxwo9n8nUnfDGNH1fPrEVXABcP6Y-TvUPoiZKYFiKmGk2RoZYt6IBVrFA_daKYaGirDbxB3ALYjpQHmJGOtNidSuHkkHHFljk1k4ZgsNSAmRXOHKWxj4_cOl0BFyXnEAIL4STngkaZa-B398ZT-ql8YtoSD94QjTxYw64aCoM3GNOI-6C8f6Yx2gjlWwv2JTeiyIFVTwsM45F435NU')`
-                                    }}
-                                ></div>
+                                                {/* Levels */}
+                                                {msg.structured.levels.map((level) => (
+                                                    <div
+                                                        key={level.level_num}
+                                                        className="border rounded-lg p-4 bg-white dark:bg-gray-900 shadow"
+                                                    >
+                                                        <h3 className="font-semibold text-lg">
+                                                            Level {level.level_num}: {level.title}
+                                                        </h3>
+                                                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                                            <strong>Focus:</strong> {level.focus}
+                                                        </p>
+                                                        <p className="mt-1">
+                                                            <strong>Duration:</strong> {level.duration}
+                                                        </p>
+                                                        <p className="mt-1">
+                                                            <strong>Skills:</strong> {level.skills.join(", ")}
+                                                        </p>
+                                                        <div className="mt-2">
+                                                            <strong>Sources:</strong>
+                                                            <ul className="list-disc list-inside">
+                                                                {level.sources.map(([name, url]) => (
+                                                                    <li key={url}>
+                                                                        <a
+                                                                            href={url}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-blue-600 dark:text-blue-400 underline"
+                                                                        >
+                                                                            {name}
+                                                                        </a>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                ))}
 
-                                <div className="flex flex-col items-start gap-2">
-                                    <span
-                                        className="text-sm font-medium text-gray-500 dark:text-gray-400"
-                                    >AI Assistant</span>
-                                    <div
-                                        className="max-w-xl rounded-lg bg-gray-100 px-4 py-3 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
-                                    >
-                                        <p className="mb-4">
-                                            Great choice! Based on your interest, I recommend the
-                                            following learning path:
-                                        </p>
-                                        <ol className="list-decimal space-y-2 pl-5">
-                                            <li>
-                                                <strong>Foundations of Data Science:</strong> Learn the
-                                                basics of statistics, probability, and linear algebra.
-                                            </li>
-                                            <li>
-                                                <strong>Programming for Data Science:</strong> Master
-                                                Python and R, essential programming languages for data
-                                                analysis.
-                                            </li>
-                                            <li>
-                                                <strong>Data Manipulation and Analysis:</strong> Dive
-                                                into data cleaning, transformation, and exploratory data
-                                                analysis using libraries like Pandas and NumPy.
-                                            </li>
-                                            <li>
-                                                <strong>Machine Learning Fundamentals:</strong>
-                                                Understand the core concepts of machine learning
-                                                algorithms, including supervised and unsupervised
-                                                learning.
-                                            </li>
-                                            <li>
-                                                <strong>Advanced Machine Learning:</strong> Explore
-                                                advanced techniques such as deep learning, natural
-                                                language processing, and time series analysis.
-                                            </li>
-                                            <li>
-                                                <strong>Data Visualization:</strong> Learn to
-                                                effectively communicate insights through data
-                                                visualization tools like Matplotlib and Seaborn.
-                                            </li>
-                                            <li>
-                                                <strong>Big Data Technologies:</strong> Get familiar
-                                                with big data platforms like Hadoop and Spark for
-                                                handling large datasets.
-                                            </li>
-                                            <li>
-                                                <strong>Real-World Projects:</strong> Apply your
-                                                knowledge by working on real-world data science projects
-                                                to build your portfolio.
-                                            </li>
-                                        </ol>
-                                        <p className="mt-4">
-                                            Do you want to accept this learning path?
-                                        </p>
+                                                {/* Weekly Routine */}
+                                                <div>
+                                                    <h3 className="font-semibold text-lg">Weekly Routine</h3>
+                                                    <ul className="mt-2 space-y-1">
+                                                        {msg.structured.routines.map((routine, i) => (
+                                                            <li key={i} className="flex justify-between">
+                                                                <span className="font-medium">{routine.day_of_week}:</span>
+                                                                <span>
+                                                                    {routine.start_time} - {routine.end_time}
+                                                                </span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+
+                                                {/* Accept Button */}
+                                                <div className="pt-2">
+                                                    <button
+                                                        onClick={() => setAcceptedPath(msg.structured)}
+                                                        className="w-full rounded-lg bg-green-500 px-4 py-2 text-white font-bold hover:bg-green-600"
+                                                    >
+                                                        Accept
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            // fallback plain text
+                                            <p>{msg.content}</p>
+                                        )}
                                     </div>
-                                    <div className="mt-2 flex gap-2">
-                                        <button
-                                            className="flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
-                                        >
-                                            Accept
-                                        </button>
-                                        <button
-                                            className="flex items-center justify-center rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
+
+                                    {msg.role === "user" && (
+                                        <div className="h-10 w-10 shrink-0 rounded-full bg-gray-400" />
+                                    )}
                                 </div>
-                            </div>
+                            ))}
+
                         </div>
                     </div>
-                    <div
-                        className="shrink-0 border-t border-gray-200 bg-background-light p-6 dark:border-gray-700/50 dark:bg-background-dark"
-                    >
+                    {/* Input */}
+                    <div className="shrink-0 border-t border-gray-200 bg-background-light p-6 dark:border-gray-700/50 dark:bg-background-dark">
                         <div className="relative">
                             <textarea
                                 className="w-full resize-none rounded-lg border-gray-300 bg-gray-100 p-4 pr-20 text-sm text-gray-800 focus:border-primary focus:ring-primary dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-400"
                                 placeholder="Type your message..."
                                 rows="1"
-                            ></textarea>
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                            />
                             <button
+                                onClick={handleSend}
                                 className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90"
                             >
                                 <span className="material-symbols-outlined">send</span>
@@ -158,7 +249,7 @@ function AiHelp() {
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white">My Learning Path</h2>
                     </div>
 
-                    <div className="px-6 pb-4 shrink-0">
+                    {/* <div className="px-6 pb-4 shrink-0">
                         <div className="relative">
                             <input
                                 className="w-full rounded-lg border border-gray-300 bg-gray-100 py-3 pl-4 pr-12 text-sm font-medium text-gray-800 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
@@ -169,96 +260,42 @@ function AiHelp() {
                                 <span className="material-symbols-outlined text-gray-500 dark:text-gray-400">edit</span>
                             </div>
                         </div>
-                    </div>
+                    </div> */}
                     <div className="flex-1 overflow-y-auto px-6 py-2 space-y-1">
                         <div className="space-y-1 p-2">
-                            <div
-                                className="rounded-lg px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                            >
-                                <p className="font-medium text-gray-800 dark:text-gray-200">
-                                    Statistics and Probability
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Foundations of Data Science
-                                </p>
-                            </div>
-                            <div
-                                className="rounded-lg px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                            >
-                                <p className="font-medium text-gray-800 dark:text-gray-200">
-                                    Python and R
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Programming for Data Science
-                                </p>
-                            </div>
-                            <div
-                                className="rounded-lg px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                            >
-                                <p className="font-medium text-gray-800 dark:text-gray-200">
-                                    Pandas and NumPy
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Data Manipulation and Analysis
-                                </p>
-                            </div>
-                            <div
-                                className="rounded-lg px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                            >
-                                <p className="font-medium text-gray-800 dark:text-gray-200">
-                                    Supervised and Unsupervised Learning
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Machine Learning Fundamentals
-                                </p>
-                            </div>
-                            <div
-                                className="rounded-lg px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                            >
-                                <p className="font-medium text-gray-800 dark:text-gray-200">
-                                    Deep Learning and NLP
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Advanced Machine Learning
-                                </p>
-                            </div>
-                            <div
-                                className="rounded-lg px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                            >
-                                <p className="font-medium text-gray-800 dark:text-gray-200">
-                                    Matplotlib and Seaborn
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Data Visualization
-                                </p>
-                            </div>
-                            <div
-                                className="rounded-lg px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                            >
-                                <p className="font-medium text-gray-800 dark:text-gray-200">
-                                    Hadoop and Spark
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Big Data Technologies
-                                </p>
-                            </div>
-                            <div
-                                className="rounded-lg px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                            >
-                                <p className="font-medium text-gray-800 dark:text-gray-200">
-                                    Portfolio Building
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Real-World Projects
-                                </p>
-                            </div>
+                            {acceptedPath
+                                ? acceptedPath.levels.map((level) => (
+                                    <div
+                                        key={level.level_num}
+                                        className="rounded-lg px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                                    >
+                                        <p className="font-medium text-gray-800 dark:text-gray-200">
+                                            {level.title}
+                                        </p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            {level.skills.join(", ")}
+                                        </p>
+                                    </div>
+                                ))
+                                : (
+                                    <div className="rounded-lg px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/50">
+                                        <p className="font-medium text-gray-800 dark:text-gray-200">
+                                            No accepted path yet.
+                                        </p>
+
+                                    </div>
+                                )}
                         </div>
                     </div>
                     <div className="p-6 shrink-0">
-                        <button className="w-full rounded-lg bg-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                        <button className="w-full rounded-lg bg-green-500 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-300 dark:bg-green-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                            onClick={handleAddItem}
+                        >
                             Add Item
                         </button>
                     </div>
+
+
                 </aside>
             </main>
         </div>

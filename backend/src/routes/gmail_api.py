@@ -54,7 +54,6 @@ USER_TOKENS = {}
 def google_callback(request: Request):
     try:
         user_details = authenticate_and_get_user_details(request)
-        print("user_details:", user_details)
 
         user_id = user_details.get("user_id") if user_details else None
         if not user_id:

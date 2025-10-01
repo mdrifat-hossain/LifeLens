@@ -1,9 +1,18 @@
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import Depends, HTTPException, Request, APIRouter, Body
 from ..database.database import get_db
 from ..utils import authenticate_and_get_user_details
 from ..database import learning_path_db
+from ..database.redis_db import redis_db_services
+from pydantic import BaseModel
 
 router = APIRouter()
+
+
+class PathItemCreate(BaseModel):
+    title: str
+    type: str = "Course"
+    description: str = ""
+
 
 @router.post("/add-learning-path")
 async def add_learning_path(request_obj: Request, body: dict, db_dep=Depends(get_db)):
@@ -11,8 +20,8 @@ async def add_learning_path(request_obj: Request, body: dict, db_dep=Depends(get
         cursor, conn = db_dep
         user_details = authenticate_and_get_user_details(request_obj)
         user_id = user_details["user_id"]
-        
-        print("✅Request Body:", body)  # Debugging line
+
+        # print("✅Request Body:", body)
 
         title = body.get("title")
         description = body.get("description", "")
@@ -30,8 +39,152 @@ async def add_learning_path(request_obj: Request, body: dict, db_dep=Depends(get
             "user_id": user_id,
             "title": title,
             "description": description,
-            "path_type": path_type,
+            "created_by": path_type,
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error in add_learning_path: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Internal error in add_learning_path: {str(e)}"
+        )
+
+
+# ✅ Get all learning paths for logged-in user
+@router.get("/get-learning-paths")
+async def get_learning_paths(request_obj: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details["user_id"]
+
+        paths = await learning_path_db.get_learning_paths(cursor, user_id)
+        return {"learning_paths": paths}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Internal error in get_learning_paths: {str(e)}"
+        )
+
+
+# ✅ Get single learning path by ID
+@router.get("/get-learning-path/{path_id}")
+async def get_learning_path(path_id: int, request_obj: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details["user_id"]
+
+        path = await learning_path_db.get_learning_path(cursor, user_id, path_id)
+        if not path:
+            raise HTTPException(status_code=404, detail="Learning path not found")
+
+        return path
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Internal error in get_learning_path: {str(e)}"
+        )
+
+
+@router.get("/get-learning-path-items/{path_id}")
+async def fetch_path_items(path_id: int, request: Request, db_dep=Depends(get_db)):
+    try:
+        # print(f"✅Fetching items for path_id: {path_id}")
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details["user_id"]
+        # print(f"✅Authenticated user_id: {user_id}")
+        items = await learning_path_db.get_path_items(cursor, path_id, user_id)
+
+        return {"items": items}
+
+    except HTTPException as e:
+        # Re-raise FastAPI HTTP errors directly
+        raise e
+    except Exception as e:
+        import traceback
+
+        print("Error in fetch_path_items:", traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Internal error in fetch_path_items: {str(e)}"
+        )
+
+
+@router.post("/reorder-learning-path-items/{path_id}")
+async def reorder_items(path_id: int, body: dict, request: Request, db_dep=Depends(get_db)):
+    cursor, conn = db_dep
+    try:
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details["user_id"]
+        print(f"✅Reordering items for path_id: {path_id}, user_id: {user_id}, body: {body}")
+
+        items = body.get("items", [])
+        await learning_path_db.update_order(cursor, conn, path_id, user_id, items)
+
+        return {"message": "Order updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating order: {e}")
+
+
+# Add new item
+@router.post("/add-learning-path-items/{path_id}")
+async def add_path_item(
+    request_obj: Request, path_id: int, body: PathItemCreate, db_dep=Depends(get_db)
+):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details["user_id"]
+        # print("✅Request Body for adding item:", user_id, path_id, body)
+
+        item_id = await learning_path_db.create_path_item(
+            cursor, conn, user_id, path_id, body.title, body.type, body.description
+        )
+        return {
+            "item_id": item_id,
+            "title": body.title,
+            "type": body.type,
+            "description": body.description,
+        }
+
+    except Exception as e:
+        import traceback
+
+        print("Error in add_path_item:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Update item
+@router.put("/update-learning-path-items/{item_id}")
+async def edit_path_item(
+    item_id: int, body: dict, request: Request, db_dep=Depends(get_db)
+):
+    try:
+        print("✅ Edit Path Item Body:", body)
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details["user_id"]
+
+        title = body.get("title")
+        item_type = body.get("type")
+        description = body.get("description")
+
+        print(f"✅ Updating item_id: {item_id}, user_id: {user_id}, title: {title}, type: {item_type}, description: {description}")
+        await learning_path_db.update_path_item(
+            cursor, conn, item_id, user_id, title, item_type, description
+        )
+        return {"success": True}
+    except Exception as e:
+        import traceback
+        print("Error in update-learning-path-items:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Delete item
+@router.delete("/learning-path-items/{item_id}")
+async def remove_path_item(item_id: int, request: Request, db_dep=Depends(get_db)):
+    cursor, conn = db_dep
+    user_details = authenticate_and_get_user_details(request)
+    user_id = user_details["user_id"]
+
+    await learning_path_db.delete_path_item(cursor, conn, item_id, user_id)
+    return {"success": True}

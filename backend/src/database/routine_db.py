@@ -45,12 +45,19 @@ async def store_routine_days(cursor, conn, routine_id, selected_days, user_id):
 
 async def get_user_routines(cursor, user_id):
     query = """
-            SELECT r.routine_id, r.routine_name, r.start_time, r.end_time, r.color, r.description,
-                   GROUP_CONCAT(d.day_of_week) as days
-            FROM weekly_routines r
-            LEFT JOIN routine_days d ON r.routine_id = d.routine_id
-            WHERE r.user_id = %s
-            GROUP BY r.routine_id
+        SELECT 
+            r.routine_id, 
+            r.routine_name, 
+            r.start_time, 
+            r.end_time, 
+            r.color, 
+            r.description,
+            GROUP_CONCAT(d.day_of_week ORDER BY d.id) AS days
+        FROM weekly_routines r
+        LEFT JOIN routine_days d ON r.routine_id = d.routine_id
+        WHERE r.user_id = %s
+        GROUP BY r.routine_id
+        ORDER BY r.start_time
     """
     await cursor.execute(query, (user_id,))
     rows = await cursor.fetchall()
