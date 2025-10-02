@@ -5,6 +5,8 @@ import { BsFillInfoCircleFill } from "react-icons/bs";
 import { IoIosClose } from "react-icons/io";
 import { useApi } from "../../utils/api";
 import { grid } from 'ldrs';
+import { useTheme } from '../../layout/useTheme';
+import { useNavigate } from "react-router-dom";
 
 // Register the web component
 grid.register();
@@ -183,11 +185,13 @@ function MealSurvey() {
     // ];
 
     const { makeRequest } = useApi();
+    const { darkMode } = useTheme();
     const [current, setCurrent] = useState(0);
     const [isLoading, setIsLoading] = useState(false)
     const [answers, setAnswers] = useState(() =>
         surveyQuestions.map(() => ({ value: null, custom: "" }))
     );
+    const navigate = useNavigate();
 
     const total = surveyQuestions.length;
 
@@ -225,20 +229,20 @@ function MealSurvey() {
             return { question: keywords[i], answer: finalAnswer };
         });
 
-        console.log(results);
-
         try {
             const data = await makeRequest("food_planning_survey", {
                 method: "POST",
                 body: JSON.stringify(results),
             });
+            if (data?.status === "success") {
+                navigate("/dashboard");
+            }
 
-            console.log("Backend response:", data);
         } catch (error) {
             console.error("Error submitting survey:", error);
         } finally {
-            setIsLoading(false);
             healthAlertGenerator();
+            setIsLoading(false);
         }
     };
 
@@ -282,10 +286,10 @@ function MealSurvey() {
     return (
         <div className="py-16 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto text-center">
-                <h1 className="text-4xl font-bold text-gray-800 mb-4">
+                <h1 className="text-4xl font-bold text-gray-800 dark:text-dark-text mb-4">
                     Help us tailor your meal plan
                 </h1>
-                <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+                <p className="text-gray-600 dark:text-dark-text/40 mb-8 max-w-2xl mx-auto">
                     These questions help personalize your plan to your needs and
                     preferences.
                 </p>
@@ -305,7 +309,7 @@ function MealSurvey() {
                 </button>
             </div> */}
 
-            <div className="max-w-md mx-auto mt-12 rounded-lg shadow-sm border border-gray-200">
+            <div className="max-w-md mx-auto mt-12 rounded-lg shadow-sm border border-accent">
                 {/* Progress */}
                 {
                     !isLoading && (
@@ -351,7 +355,7 @@ function MealSurvey() {
 
                         return (
                             <div key={index} className={position}>
-                                <h2 className="text-xl font-semibold text-center mb-6 p-4 pb-0">
+                                <h2 className="text-xl font-semibold text-center mb-6 p-4 pb-0 dark:text-dark-text">
                                     {q.question}
                                 </h2>
 
@@ -363,7 +367,7 @@ function MealSurvey() {
                                                 key={opt}
                                                 onClick={() => selectOption(opt)}
                                                 className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${answers[index]?.value === opt
-                                                    ? "bg-green-600 text-white"
+                                                    ? "bg-green-600 text-white dark:text-light-text"
                                                     : "bg-green-200 text-green-800 hover:bg-green-300"
                                                     }`}
                                             >
@@ -384,7 +388,7 @@ function MealSurvey() {
                                                     return next;
                                                 })
                                             }
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border border-accent text-dark-text rounded-lg focus:border-green-500 focus:outline-none"
                                         />
                                     )}
 
@@ -404,7 +408,7 @@ function MealSurvey() {
                                                     return next;
                                                 })
                                             }
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border border-accent dark:text-dark-text rounded-lg focus:border-green-500 focus:outline-none"
                                         />
                                     )}
                                 </div>
@@ -414,8 +418,8 @@ function MealSurvey() {
 
                     {/* Loader overlay */}
                     {isLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 z-50">
-                            <l-grid size="60" speed="1.5" color="black"></l-grid>
+                        <div className="absolute inset-0 flex items-center justify-center bg-light-background dark:bg-dark-background bg-opacity-70 z-50">
+                            <l-grid size="60" speed="1.5" color={darkMode ? "white" : "black"} ></l-grid>
                         </div>
                     )}
 
@@ -450,9 +454,9 @@ function MealSurvey() {
                     )}
                 </div>
 
-                <div className="relative mt-6 bg-gray-100 p-4 rounded-lg flex items-start text-sm">
+                <div className="relative mt-6 bg-gray-100 dark:bg-accent p-4 rounded-lg flex items-start text-sm">
                     <BsInfoCircle className="w-6 h-6 text-blue-500 mr-2" />
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 dark:text-dark-text">
                         This survey will help us tailor your meal plan. Your answers are
                         important for a personalized experience.
                     </p>

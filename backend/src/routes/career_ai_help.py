@@ -34,7 +34,7 @@ async def career_ai_help(req: ConversationRequest, request_obj: Request = None, 
         user_id = user_details["user_id"]
         
         users_learning_path_details = await learning_path_db.get_learning_path_details_for_ai( cursor, user_id, path_id=req.path_id)
-        users_routine_details = await learning_path_db.get_routine_details_for_ai( cursor, user_id)
+        users_existing_routine_details = await learning_path_db.get_routine_details_for_ai( cursor, user_id)
         
         if not users_learning_path_details:
             print("❌ No learning path details found for user_id:", user_id)
@@ -42,7 +42,7 @@ async def career_ai_help(req: ConversationRequest, request_obj: Request = None, 
             
         domains = [
             {"name": "user_learning_plan", "desc": users_learning_path_details},
-            {"name": "user_weekly_routine", "desc": users_routine_details},
+            {"name": "user_weekly_routine", "desc": users_existing_routine_details},
         ]
 
         # print("✅ users_learning_path_details:", users_learning_path_details)
@@ -94,8 +94,23 @@ async def add_learning_path(request_obj: Request, path_id: int, db_dep=Depends(g
                 title=level["title"],
                 item_type="level",
                 description=level.get("description", ""),
+                focus=level.get("focus", ""),                      # focus text
+                skills=json.dumps(level.get("skills", [])),       # store as JSON string if DB can't handle arrays
                 sources=level.get("sources", []),
+                duration=level.get("duration", ""),               # duration string, e.g., "2 weeks"
             )
+
+        # for idx, level in enumerate(path["levels"], start=1):
+        #     await learning_path_db.create_path_item(
+        #         cursor,
+        #         conn,
+        #         user_id=user_id,
+        #         path_id=path_id,
+        #         title=level["title"],
+        #         item_type="level",
+        #         description=level.get("description", ""),
+        #         sources=level.get("sources", []),
+        #     )
             
         # print("✅ Inserted levels/items for path_id:", path_id)
 
@@ -109,6 +124,8 @@ async def add_learning_path(request_obj: Request, path_id: int, db_dep=Depends(g
             "Sunday": "Sun",
         }
         # 3️⃣ Insert weekly routines
+        path_title = path["path_title"]
+        path_type = f"path_{path_id}"
         for routine in path.get("routines", []):
             # Convert start/end time strings to time objects
             start_time = datetime.strptime(routine["start_time"], "%H:%M").time()
@@ -118,11 +135,13 @@ async def add_learning_path(request_obj: Request, path_id: int, db_dep=Depends(g
                 cursor,
                 conn,
                 user_id=user_id,
-                routine_name=f"Skill Session",
+                routine_name=path_title,
                 start_time=start_time,
                 end_time=end_time,
-                color="#498F6C",
+                color="#ccccff",
                 description=routine.get("description", ""),
+                path_type=path_type,
+                path_id=path_id
             )
 
             # Convert full day name to short form before inserting into routine_days

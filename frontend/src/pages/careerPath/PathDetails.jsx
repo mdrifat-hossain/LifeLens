@@ -258,6 +258,8 @@ function PathDetails() {
         setEditingItem(null);
     }
 
+    const [expandedItems, setExpandedItems] = useState({});
+
     // Edit modal flows
     // function openEdit(item) {
     //     setEditingItem(item);
@@ -358,32 +360,86 @@ function PathDetails() {
                                 onDrop={handleDrop}
                                 onDragEnd={handleDragEnd}
                                 className={`bg-white dark:bg-gray-900/50 p-4 rounded-xl shadow-sm border 
-                border-gray-200 dark:border-gray-800 flex items-center gap-4 
-                ${draggingIndex === index ? "opacity-50" : ""}`}
+            border-gray-200 dark:border-gray-800 flex flex-col gap-2 
+            ${draggingIndex === index ? "opacity-50" : ""}`}
                             >
-                                <MdDragIndicator size={24} className="cursor-grab text-gray-400 dark:text-gray-500" />
-                                <div className="flex-grow">
-                                    <h3 className="font-semibold text-gray-900 dark:text-white">{item.title}</h3>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
+                                {/* Main Info */}
+                                <div className="flex items-center gap-4">
+                                    <div className="w-6 h-6 flex items-center justify-center">
+                                        <MdDragIndicator size={24} className="cursor-grab text-gray-400 dark:text-gray-500" />
+                                    </div>
+                                    <div className="flex-grow">
+                                        <h3 className="font-semibold text-gray-900 dark:text-white">{item.title}</h3>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => openEdit(item)} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
+                                            <MdEdit size={20} />
+                                        </button>
+                                        <button onClick={() => handleDelete(item.item_id)} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                                            <MdDeleteForever size={20} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
+
+                                {/* Dropdown toggle */}
+                                <div className="text-center mt-2">
                                     <button
-                                        onClick={() => openEdit(item)}
-                                        className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 
-                   dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
+                                        onClick={() =>
+                                            setExpandedItems((prev) => ({ ...prev, [item.item_id]: !prev[item.item_id] }))
+                                        }
+                                        className="text-sm text-blue-500 hover:underline"
                                     >
-                                        <MdEdit size={20} />
+                                        {expandedItems[item.item_id] ? "Show Less ▲" : "Show More ▼"}
                                     </button>
-                                    <button
-                                        onClick={() => handleDelete(item.item_id)}
-                                        className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 
-                   dark:hover:bg-gray-800 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                                    >
-                                        <MdDeleteForever size={20} />
-                                    </button>
+                                </div>
+
+                                {/* Expanded Section with smooth animation */}
+                                <div
+                                    className={`mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded space-y-1 text-sm text-gray-700 dark:text-gray-300
+                transition-all duration-300 ease-in-out overflow-hidden
+                ${expandedItems[item.item_id] ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"}`}
+                                >
+                                    <p><strong>Focus:</strong> {item.focus}</p>
+
+                                    {item.skills && Array.isArray(item.skills) && item.skills.length > 0 && (
+                                        <p>
+                                            <strong>Skills:</strong>
+                                            <ul className="list-disc list-inside ml-4">
+                                                {item.skills.map((skill, i) => <li key={i}>{skill}</li>)}
+                                            </ul>
+                                        </p>
+                                    )}
+
+                                    {item.sources?.length > 0 && (
+                                        <p>
+                                            <strong>Sources:</strong>
+                                            <ul className="list-disc list-inside ml-4">
+                                                {item.sources.map((srcGroup, i) =>
+                                                    srcGroup.map((src, j) => {
+                                                        if (!src) return null;
+                                                        const urlMatch = src.match(/\[.*?\]\((.*?)\)/);
+                                                        const url = urlMatch ? urlMatch[1] : src;
+                                                        const text = urlMatch ? src.replace(/\[|\]\(.*?\)/g, "") : src;
+                                                        return (
+                                                            <li key={`${i}-${j}`}>
+                                                                <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                                                    {text || url}
+                                                                </a>
+                                                            </li>
+                                                        );
+                                                    })
+                                                )}
+                                            </ul>
+                                        </p>
+                                    )}
+
+                                    <p><strong>Duration:</strong> {item.duration}</p>
                                 </div>
                             </div>
                         ))}
+
+
 
                     </div>
                 </div>

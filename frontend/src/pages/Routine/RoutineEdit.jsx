@@ -904,7 +904,7 @@ function RoutineEdit() {
                         </h2>
                         <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-2">
-                                <button
+                                {/* <button
                                     className="flex items-center bg-accent text-white px-4 py-2 rounded-md hover:bg-accent/80 "
                                 >
                                     <FaSave className="mr-2 text-lg" />
@@ -917,7 +917,7 @@ function RoutineEdit() {
                                 >
                                     <RiRobot2Fill className="mr-2 text-lg" />
                                     AI Help
-                                </button>
+                                </button> */}
                             </div>
                         </div>
                     </div>
@@ -963,7 +963,7 @@ function RoutineEdit() {
                                         .map((block, idx) => (
                                             <div
                                                 key={idx}
-                                                className="absolute left-2 right-2 rounded-md text-xs text-white p-1"
+                                                className="absolute left-2 right-2 rounded-md text-xs text-white p-1 cursor-pointer"
                                                 style={{
                                                     top: `${block.top}%`,
                                                     height: `${block.height}%`,

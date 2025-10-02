@@ -94,17 +94,20 @@ function RoutineDashboard() {
 
     // Toggle complete
     const handleToggleComplete = async (taskId) => {
-        setTasks((prev) =>
-            prev.map((task) =>
+        setTasks(prev =>
+            prev.map(task =>
                 task.task_id === taskId ? { ...task, completed: !task.completed } : task
             )
         );
+
         try {
             await makeRequest(`toggle_task/${taskId}`, { method: "PATCH" });
+            fetchTodayProgress(); // <-- update progress bar
         } catch (err) {
             console.error("Error toggling task:", err);
         }
     };
+
 
     // Remove task
     const handleRemoveTask = async (taskId) => {
@@ -130,8 +133,17 @@ function RoutineDashboard() {
         const fetchRoutines = async () => {
             try {
                 const res = await makeRequest("get_routines", { method: "GET" });
-                setRoutines(res.routines || []);
-                console.log(res.routines);
+                const routines = res.routines || [];
+
+                setRoutines(routines);
+
+                // Initialize completed state from backend
+                const completedMap = {};
+                routines.forEach(r => {
+                    completedMap[r.routine_id] = r.is_completed_today; // <-- use backend value
+                });
+                setCompleted(completedMap);
+
             } catch (err) {
                 console.error("Error fetching routines:", err);
             }
@@ -155,6 +167,69 @@ function RoutineDashboard() {
             [id]: !prev[id], // toggle completion
         }));
     };
+
+    const [progress, setProgress] = useState(0);
+    const [completedRoutines, setCompletedRoutines] = useState(0);
+    const [totalRoutines, setTotalRoutines] = useState(0);
+
+
+
+    const handleRoutineCheckboxChange = async (routineId) => {
+        try {
+            // Optimistic UI update
+            setCompleted(prev => ({ ...prev, [routineId]: !prev[routineId] }));
+            // console.log("Toggling routine:", routineId);
+
+            // Make POST request with routine_id in body
+            const res = await makeRequest("routines/toggle", {
+                method: "POST",
+                body: JSON.stringify({ routine_id: routineId }),
+            });
+
+            // Update local state with actual DB value
+            setCompleted(prev => ({ ...prev, [routineId]: res.is_completed_today }));
+
+            // Refresh today's progress
+            fetchTodayProgress();
+        } catch (err) {
+            console.error("Error toggling routine:", err);
+        }
+    };
+
+
+    const fetchTodayProgress = async () => {
+        try {
+            const res = await makeRequest("get_today_progress", { method: "GET" }); // routines
+            const taskRes = tasks; // from local state
+            console.log("Today's progress data:", res, taskRes);
+
+
+            // const totalRoutinesAndTasks = res.total_routines + taskRes.length;
+            // const completedRoutinesAndTasks =
+            //     res.completed_routines + taskRes.filter(t => t.completed).length;
+
+            // const combinedProgress = totalRoutinesAndTasks > 0
+            //     ? (completedRoutinesAndTasks / totalRoutinesAndTasks) * 100
+            //     : 0;
+            const routineProgress = res.total_routines > 0
+                ? (res.completed_routines / res.total_routines) * 100
+                : 0;
+
+            setProgress(routineProgress);
+
+            // setProgress(combinedProgress);
+            setCompletedRoutines(res.completed_routines);
+            setTotalRoutines(res.total_routines);
+        } catch (err) {
+            console.error("Error fetching today progress:", err);
+        }
+    };
+
+
+    useEffect(() => {
+        fetchTodayProgress();
+    }, []);
+
 
 
 
@@ -230,101 +305,9 @@ function RoutineDashboard() {
                             </div>
                         </div>
                     </div>
-                    {/* <div className="mt-4 ">
-                        <div className="border-2 border-gray-200 rounded-lg">
-                            <div
-                                className="p-4 flex justify-between items-center cursor-pointer bg-gray-100 hover:bg-gray-200 transition duration-200 rounded-lg"
-                            >
-                                <span className="tracking-wider">View Full Weekly Schedule</span>
-                                <IoIosArrowDown className="text-gray-600" />
-
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mt-6 border-2 border-gray-200 rounded-lg p-4">
-                        <div className="grid grid-cols-7 gap-2 text-center text-sm">
-                            {dayOrder.map((day) => {
-                                const isToday = day === new Date().toLocaleDateString("en-US", { weekday: "long" });
-                                return (
-                                    <div
-                                        key={day}
-                                        className={`p-2 rounded-lg ${isToday ? "bg-green-100" : ""}`}
-                                    >
-                                        <p className="font-medium text-gray-600">{day.slice(0, 3)}</p>
-                                        {routinesByDay[day]?.map((routine) => (
-                                            <div
-                                                key={routine.routine_id}
-                                                className={`${colorClasses[routine.color] || "bg-gray-100 text-gray-700"} py-1 mt-1 rounded-md`}
-                                            >
-                                                {routine.routine_name} {routine.start_time} - {routine.end_time}
-                                            </div>
-                                        ))}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div> */}
-
-
-
 
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* <div className="bg-white p-6 rounded-lg shadow-sm lg:col-span-1">
-                        <h3 className="font-semibold text-gray-800">Today's Progress</h3>
-                        <div className="mt-4 flex items-start space-x-4">
-                            <div className="flex flex-col items-center">
-                                <div
-                                    className="bg-indigo-600 text-white h-10 w-10 rounded-full flex items-center justify-center"
-                                >
-                                    <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                                        <path fillRule="evenodd" d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm11-4a1 1 0 1 0-2 0v4a1 1 0 0 0 .293.707l3 3a1 1 0 0 0 1.414-1.414L13 11.586V8Z" clipRule="evenodd" />
-                                    </svg>
-
-                                </div>
-                                <svg className="mt-10 h-10 w-10 text-gray-800 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                                    <path fillRule="evenodd" d="M12 20a7.966 7.966 0 0 1-5.002-1.756l.002.001v-.683c0-1.794 1.492-3.25 3.333-3.25h3.334c1.84 0 3.333 1.456 3.333 3.25v.683A7.966 7.966 0 0 1 12 20ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10c0 5.5-4.44 9.963-9.932 10h-.138C6.438 21.962 2 17.5 2 12Zm10-5c-1.84 0-3.333 1.455-3.333 3.25S10.159 13.5 12 13.5c1.84 0 3.333-1.455 3.333-3.25S13.841 7 12 7Z" clipRule="evenodd" />
-                                </svg>
-                                <div className="w-1 h-50 bg-indigo-200 mt-2 rounded-2xl">
-                                    <div className="h-[65%] bg-indigo-500 rounded-2xl">
-
-                                    </div>
-
-
-                                </div>
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-3xl font-bold text-gray-900">11:01 PM</p>
-                                <p className="text-sm text-gray-500">Wednesday, Jan 15</p>
-                                <div className="mt-8">
-                                    <p
-                                        className="text-center text-3xl font-bold text-indigo-500 mt-2"
-                                    >
-                                        65%
-                                    </p>
-                                    <p className="text-center text-sm text-gray-500">
-                                        Day Complete
-                                    </p>
-                                    <div className="flex justify-between items-center text-sm mb-1">
-                                        <p className="text-gray-600">Tasks Done</p>
-                                        <p className="font-medium text-gray-800">8/12</p>
-                                    </div>
-
-                                    <div className="bg-gray-200 rounded-full h-2 w-full">
-                                        <div
-                                            className="bg-indigo-500 h-2 rounded-full w-[65%]"
-                                        ></div>
-                                    </div>
-
-
-                                    <div className="mt-6 flex justify-between items-center text-sm">
-                                        <p className="text-gray-600">Time Left</p>
-                                        <p className="font-medium text-gray-800">8h 30m</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div> */}
                     <div className="bg-light-background dark:bg-dark-background p-6 rounded-lg shadow-lg border-1 border-accent/50 lg:col-span-1 ">
                         <h3 className="font-semibold text-gray-800 dark:text-dark-text">Today's Progress</h3>
                         <div className="mt-4 flex items-start space-x-4">
@@ -340,8 +323,8 @@ function RoutineDashboard() {
                                 {/* Vertical progress bar */}
                                 <div className="w-1 h-48 bg-accent/20 mt-4 rounded-2xl relative">
                                     <div
-                                        className="bg-accent rounded-2xl absolute bottom-0 w-1"
-                                        style={{ height: `${taskCompletion}%` }}
+                                        className="bg-primary rounded-2xl absolute bottom-0 w-1"
+                                        style={{ height: `${progress}%` }}
                                     ></div>
                                 </div>
 
@@ -364,23 +347,20 @@ function RoutineDashboard() {
                                 {/* Task completion */}
                                 <div className="mt-6">
                                     <p className="text-center text-3xl font-bold text-accent">
-                                        {Math.round(taskCompletion)}%
+                                        {Math.round(progress)}%
                                     </p>
                                     <p className="text-center text-sm text-gray-500 dark:text-dark-text/60">Day Complete</p>
 
                                     <div className="flex justify-between items-center text-sm mb-1">
-                                        <p className="text-gray-600 dark:text-dark-text/60">Tasks Done</p>
+                                        <p className="text-gray-600 dark:text-dark-text/60">Routines Done</p>
                                         <p className="font-medium text-gray-800 dark:text-dark-text/60">
-                                            {completedTasks}/{totalTasks}
+                                            {completedRoutines}/{totalRoutines}
                                         </p>
                                     </div>
 
                                     {/* Horizontal progress bar */}
                                     <div className="bg-gray-200 rounded-full h-2 w-full">
-                                        <div
-                                            className="bg-accent h-2 rounded-full"
-                                            style={{ width: `${taskCompletion}%` }}
-                                        ></div>
+                                        <div className="bg-primary h-2 rounded-full" style={{ width: `${progress}%` }}></div>
                                     </div>
 
                                     {/* Current routine */}
@@ -423,7 +403,7 @@ function RoutineDashboard() {
                                         <div
                                             key={routine.routine_id}
                                             className={`border p-3 rounded-lg flex items-center justify-between 
-              ${isCompleted
+                                                    ${isCompleted
                                                     ? "bg-green-50 dark:bg-green-800 border-green-200"
                                                     : isOverdue
                                                         ? "bg-red-50 dark:bg-[#b33939] border-red-200"
@@ -435,9 +415,10 @@ function RoutineDashboard() {
                                                     <input
                                                         type="checkbox"
                                                         checked={isCompleted}
-                                                        onChange={() => handleCheckboxChange(routine.routine_id)}
+                                                        onChange={() => handleRoutineCheckboxChange(routine.routine_id)}
                                                         className="h-4 w-4 text-green-600 border-green-300 rounded focus:ring-green-500"
                                                     />
+
                                                 </div>
                                                 <div>
                                                     <p className="font-medium text-gray-800 dark:text-dark-text">
@@ -471,211 +452,7 @@ function RoutineDashboard() {
                         </div>
                     </div>
 
-                    {/* <div className="bg-white p-6 rounded-lg shadow-sm lg:col-span-1">
-                        <h3 className="font-semibold text-gray-800">Today's Routine</h3>
-                        <div className="space-y-4 mt-4">
-                            <div
-                                className="bg-green-50 border border-green-200 p-3 rounded-lg flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className="bg-green-100 rounded-md p-1">
-                                        <input
-                                            checked="true"
-                                            className="h-4 w-4 text-green-600 border-green-300 rounded focus:ring-green-500"
-                                            type="checkbox"
-                                        />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-800">Morning Workout</p>
-                                        <p className="text-sm text-gray-500">6:00 AM - 7:00 AM</p>
-                                    </div>
-                                </div>
-                                <div
-                                    className="bg-green-500 text-white h-6 w-6 rounded-full flex items-center justify-center"
-                                >
-                                    <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11.917 9.724 16.5 19 7.5" />
-                                    </svg>
-
-                                </div>
-                            </div>
-                            <div
-                                className="bg-green-50 border border-green-200 p-3 rounded-lg flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className="bg-green-100 rounded-md p-1">
-                                        <input
-                                            checked="true"
-                                            className="h-4 w-4 text-green-600 border-green-300 rounded focus:ring-green-500"
-                                            type="checkbox"
-                                        />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-800">Breakfast</p>
-                                        <p className="text-sm text-gray-500">8:00 AM - 8:30 AM</p>
-                                    </div>
-                                </div>
-                                <div
-                                    className="bg-green-500 text-white h-6 w-6 rounded-full flex items-center justify-center"
-                                >
-                                    <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 11.917 9.724 16.5 19 7.5" />
-                                    </svg>
-
-                                </div>
-                            </div>
-                            <div
-                                className="bg-indigo-50 border border-indigo-200 p-3 rounded-lg flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className="bg-gray-100 rounded-md p-1">
-                                        <input
-                                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                            type="checkbox"
-                                        />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-800">Team Meeting</p>
-                                        <p className="text-sm text-gray-500">1:00 PM - 2:00 PM</p>
-                                    </div>
-                                </div>
-                                <div
-                                    className="bg-indigo-500 text-white h-6 w-6 rounded-full flex items-center justify-center"
-                                >
-                                    <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                    </svg>
-
-                                </div>
-                            </div>
-                            <div
-                                className="bg-gray-50 border border-gray-200 p-3 rounded-lg flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className="bg-gray-100 rounded-md p-1">
-                                        <input
-                                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                            type="checkbox"
-                                        />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-800">Project Work</p>
-                                        <p className="text-sm text-gray-500">3:00 PM - 6:00 PM</p>
-                                    </div>
-                                </div>
-                                <div
-                                    className="bg-gray-400 text-white h-6 w-6 rounded-full flex items-center justify-center"
-                                >
-                                    <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                    </svg>
-
-                                </div>
-                            </div>
-                            <div
-                                className="bg-gray-50 border border-gray-200 p-3 rounded-lg flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className="bg-gray-100 rounded-md p-1">
-                                        <input
-                                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                            type="checkbox"
-                                        />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-800">Evening Walk</p>
-                                        <p className="text-sm text-gray-500">7:00 PM - 8:00 PM</p>
-                                    </div>
-                                </div>
-                                <div
-                                    className="bg-gray-400 text-white h-6 w-6 rounded-full flex items-center justify-center"
-                                >
-                                    <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                    </svg>
-
-                                </div>
-                            </div>
-                        </div>
-                    </div> */}
                     <div className="space-y-6 lg:col-span-1">
-                        {/* <div className="bg-white p-6 rounded-lg shadow-sm">
-                            <div className="flex justify-between items-center">
-                                <h3 className="font-semibold text-blue-500">Today's Tasks</h3>
-                                <a className="text-indigo-600 hover:text-indigo-800" href="#">
-                                    <svg className="w-6 h-6 text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 7.757v8.486M7.757 12h8.486M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                    </svg>
-
-                                </a>
-                            </div>
-                            <div className="space-y-4 mt-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <input
-                                            checked={taskChecked}
-                                            onChange={() => taskSetChecked(!taskChecked)}
-                                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                            type="checkbox"
-                                        />
-                                        <label className={`text-gray-800 ${taskChecked ? "line-through text-gray-500" : ""}`}
-                                        >Review project proposal</label>
-                                    </div>
-                                    <button className="text-gray-400 hover:text-gray-600">
-                                        <svg className="w-6 h-6 text-red-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7.757 12h8.486M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                        </svg>
-
-                                    </button>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <input
-                                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                            type="checkbox"
-                                        />
-                                        <label className="text-gray-800"
-                                        >Call client about requirements</label>
-                                    </div>
-                                    <button className="text-gray-400 hover:text-gray-600">
-                                        <svg className="w-6 h-6 text-red-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7.757 12h8.486M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                        </svg>
-
-                                    </button>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <input
-                                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                            type="checkbox"
-                                        />
-                                        <label className="text-gray-800">Update documentation</label>
-                                    </div>
-                                    <button className="text-gray-400 hover:text-gray-600">
-                                        <svg className="w-6 h-6 text-red-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7.757 12h8.486M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                        </svg>
-
-                                    </button>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <input
-                                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                            type="checkbox"
-                                        />
-                                        <label className="text-gray-800">Grocery shopping</label>
-                                    </div>
-                                    <button className="text-gray-400 hover:text-gray-600">
-                                        <svg className="w-6 h-6 text-red-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7.757 12h8.486M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                        </svg>
-
-                                    </button>
-                                </div>
-                            </div>
-                        </div> */}
                         <div className="bg-light-background dark:bg-dark-background border-1 border-accent/50 p-6 rounded-lg shadow-lg">
                             <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-black dark:text-dark-text">Today's Tasks</h3>

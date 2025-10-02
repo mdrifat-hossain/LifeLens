@@ -1,9 +1,58 @@
 import React from 'react'
 import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from 'react';
+import { useApi } from "../../utils/api";
+
 import { FaArrowRightLong } from "react-icons/fa6";
 import { BsStars } from "react-icons/bs";
 
 function CareerDashboard() {
+    const { makeRequest } = useApi();
+
+    const [levels, setLevels] = useState([]); // ✅ start as empty array
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const res = await makeRequest("get_learning_path_progress", {
+                    method: "GET"
+                });
+                console.log("Progress response:", res); // ✅ you'll see the actual array or object
+
+                // ✅ if backend returns array
+                if (Array.isArray(res)) {
+                    setLevels(res);
+                }
+                // ✅ if backend returns { levels: [...] }
+                else if (res && Array.isArray(res.levels)) {
+                    setLevels(res.levels);
+                }
+                else {
+                    setLevels([]); // fallback
+                }
+            } catch (err) {
+                console.error("Error fetching progress:", err);
+                setError("Failed to load progress");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+
+    if (loading) {
+        return <div className="text-gray-600">Loading progress...</div>;
+    }
+
+    if (error) {
+        return <div className="text-red-600">{error}</div>;
+    }
+
+
+
     return (
         <div className="container mx-auto p-8 space-y-8">
             <div className="gradient-bg text-white  rounded-xl shadow-lg">
@@ -34,8 +83,7 @@ function CareerDashboard() {
                         <Link
                             to="learning-path" // 👈 your route here
                             className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-indigo-300 
-               text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition"
-                        >
+                            text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition">
                             <BsStars className="text-green-500 text-lg" />
                             <span>
                                 View all & <span className="text-green-600 font-semibold">AI</span> help
@@ -45,61 +93,83 @@ function CareerDashboard() {
                     </div>
 
                     <div className="space-y-8 relative">
+                        {/* Timeline line */}
                         <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-                        <div className="flex items-start">
-                            <div className="z-10 flex-shrink-0">
-                                <div
-                                    className="bg-green-500 rounded-full h-10 w-10 flex items-center justify-center text-white">
-                                    <span className="material-icons">check</span>
+
+                        {Array.isArray(levels) && levels.length > 0 ? (
+                            levels.map((item, idx) => (
+                                <div key={idx} className="flex items-start">
+                                    {/* Circle status */}
+                                    <div className="z-10 flex-shrink-0">
+                                        <div
+                                            className={`rounded-full h-10 w-10 flex items-center justify-center ${item.status === "Completed"
+                                                ? "bg-green-500 text-white"
+                                                : item.status === "In Progress"
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-gray-300 text-gray-500"
+                                                }`}
+                                        >
+                                            <span className="material-icons">
+                                                {item.status === "Completed"
+                                                    ? "check"
+                                                    : item.status === "In Progress"
+                                                        ? "play_arrow"
+                                                        : "lock"}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Text section */}
+                                    <div className="ml-6 flex-grow">
+                                        <h3
+                                            className={`font-semibold ${item.status === "Locked"
+                                                ? "text-gray-400"
+                                                : "text-gray-900"
+                                                }`}
+                                        >
+                                            {item.title}
+                                        </h3>
+                                        <p
+                                            className={`text-sm ${item.status === "Locked"
+                                                ? "text-gray-400"
+                                                : "text-gray-500"
+                                                }`}
+                                        >
+                                            {item.description}
+                                        </p>
+
+                                        {/* Tags + Duration */}
+                                        <div className="mt-2 flex items-center space-x-2">
+                                            <span
+                                                className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${item.status === "Completed"
+                                                    ? "bg-green-100 text-green-700"
+                                                    : item.status === "In Progress"
+                                                        ? "bg-blue-100 text-blue-700"
+                                                        : "bg-gray-200 text-gray-600"
+                                                    }`}
+                                            >
+                                                {item.status}
+                                            </span>
+                                            <span className="text-gray-400 text-sm">
+                                                {item.duration_weeks} weeks
+                                            </span>
+                                        </div>
+
+                                        {/* Progress bar */}
+                                        {item.status === "In Progress" && (
+                                            <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                                                <div
+                                                    className="bg-blue-600 h-2 rounded-full"
+                                                    style={{ width: `${item.progress}%` }}
+                                                ></div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="ml-6 flex-grow">
-                                <h3 className="font-semibold text-gray-900">Frontend Development Basics</h3>
-                                <p className="text-gray-500 text-sm">HTML, CSS, JavaScript fundamentals</p>
-                                <div className="mt-2 flex items-center space-x-2">
-                                    <span
-                                        className="bg-green-100 text-green-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">Completed</span>
-                                    <span className="text-gray-400 text-sm">40 hours</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex items-start">
-                            <div className="z-10 flex-shrink-0">
-                                <div className="bg-blue-600 rounded-full h-10 w-10 flex items-center justify-center text-white">
-                                    <span className="material-icons">play_arrow</span>
-                                </div>
-                            </div>
-                            <div className="ml-6 flex-grow">
-                                <h3 className="font-semibold text-gray-900">React &amp; State Management</h3>
-                                <p className="text-gray-500 text-sm">Building interactive financial dashboards</p>
-                                <div className="mt-2 flex items-center space-x-2">
-                                    <span
-                                        className="bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">In
-                                        Progress</span>
-                                    <span className="text-gray-400 text-sm">60 hours</span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                                    <div className="bg-blue-600 h-2 rounded-full w-[75%]"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex items-start">
-                            <div className="z-10 flex-shrink-0">
-                                <div
-                                    className="bg-gray-300 rounded-full h-10 w-10 flex items-center justify-center text-gray-500">
-                                    <span className="material-icons">lock</span>
-                                </div>
-                            </div>
-                            <div className="ml-6 flex-grow">
-                                <h3 className="font-semibold text-gray-400">Backend &amp; Database</h3>
-                                <p className="text-gray-400 text-sm">Node.js, Express, MongoDB for financial data</p>
-                                <div className="mt-2 flex items-center space-x-2">
-                                    <span
-                                        className="bg-gray-200 text-gray-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">Locked</span>
-                                    <span className="text-gray-400 text-sm">80 hours</span>
-                                </div>
-                            </div>
-                        </div>
+                            ))
+                        ) : (
+                            <div className="text-gray-500">No progress data available</div>
+                        )}
                     </div>
                 </div>
                 <div className="space-y-8">

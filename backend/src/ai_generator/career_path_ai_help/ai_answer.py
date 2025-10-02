@@ -35,11 +35,25 @@ def build_rag_chain_for_career():
 
     2. **Weekly Routine Planning**
     - Create a **specific weekly schedule** for each learning task.
-    - Respect the user's existing routine (from context), **do not overlap** with existing events.
-    - Assign **exact start and end times** for each study session (e.g., "Monday 13:00-15:00").
-    - Consider the user's preferred times for learning if specified.
+    - Respect the user's existing routine (from context), **do not overlap** with any busy time.
+    - The user's **busy times** will be provided in the context in the following **example format** (do not treat these times as fixed):
+
+        day_of_week | time_slots
+        Sun | 01:00-03:30, 08:30-09:50, 12:30-13:14, 14:00-16:30
+        Mon | 13:00-15:30, 15:40-16:40, 17:00-19:30, 21:30-22:30
+        Tue | 08:30-09:50, 13:00-15:30, 17:00-19:30
+        Wed | 13:00-15:30, 17:00-19:30
+        Thu | 13:00-15:30, 17:00-19:30
+        Fri | 13:00-15:30, 17:00-19:30
+        Sat | 13:00-15:30, 17:00-19:30, 22:53-23:52
+
+    - **Step 1: Calculate free time slots** for each day from the busy time ranges.
+    - **Step 2: Schedule learning sessions only inside free slots.** Never schedule during a busy time.
+    - Assign **exact start and end times** for each study session (e.g., "Monday 08:00-10:00") based on free slots.
     - Schedule multiple sessions per week if needed, according to the duration of each level.
-    - If a suggested time conflicts with an existing event, choose the next available time.
+    - If a day has **no available free slot**, do not schedule any session for that day.
+    - Provide the weekly routine in the same structured format as the **Response Format Example**, showing only valid, conflict-free time slots.
+
 
     3. **Response Style**
     - Provide a **clear, structured output**.
@@ -75,7 +89,7 @@ def build_rag_chain_for_career():
 
     **Weekly Routine**
 
-    Based on your provided schedule, here's a possible weekly routine, scheduling one study session per day:
+    Based on your provided schedule and free slots, here's a possible weekly routine, scheduling one study session per day:
 
     *   **Monday:** [Start-End Time] 
     *   **Tuesday:** [Start-End Time] 
@@ -85,6 +99,13 @@ def build_rag_chain_for_career():
     *   **Saturday:** [Start-End Time] 
     *   **Sunday:** [Start-End Time] 
 
+    **Important Rules for AI:**
+    - Only schedule sessions within the given free slots.
+    - Skip days where no slot fits.
+    - Do not suggest times that overlap with any existing event.
+    - Try to distribute study sessions evenly across the week if possible.
+    
+    
     Context:
     {context}
 

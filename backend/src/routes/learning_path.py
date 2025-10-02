@@ -115,7 +115,7 @@ async def reorder_items(path_id: int, body: dict, request: Request, db_dep=Depen
     try:
         user_details = authenticate_and_get_user_details(request)
         user_id = user_details["user_id"]
-        print(f"✅Reordering items for path_id: {path_id}, user_id: {user_id}, body: {body}")
+        # print(f"✅Reordering items for path_id: {path_id}, user_id: {user_id}, body: {body}")
 
         items = body.get("items", [])
         await learning_path_db.update_order(cursor, conn, path_id, user_id, items)
@@ -123,7 +123,90 @@ async def reorder_items(path_id: int, body: dict, request: Request, db_dep=Depen
         return {"message": "Order updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating order: {e}")
+    
+@router.post("/reorder-learning-paths")
+async def reorder_items(body: dict, request: Request, db_dep=Depends(get_db)):
+    cursor, conn = db_dep
+    try:
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details["user_id"]
+        print(f"✅ Reordering user_id: {user_id}, body: {body}")
 
+        items = body.get("items", [])
+        await learning_path_db.update_learning_path_order(cursor, conn, user_id, items)
+
+        return {"message": "Order updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating order: {e}")
+    
+@router.post("/update-learning-path-running/{path_id}")
+async def update_running_path(
+    path_id: int, body: dict, request: Request, db_dep=Depends(get_db)
+):
+    """
+    body = {
+        "is_running": 1 or 0,
+        "sort_order": <int>  # optional if starting running path
+    }
+    """
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details["user_id"]
+
+        is_running = body.get("is_running", 0)
+        sort_order = body.get("sort_order", None)
+
+        await learning_path_db.update_learning_path_running(
+            cursor, conn, user_id, path_id, is_running, sort_order
+        )
+
+        return {"message": "Path running state updated successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating running path: {e}")
+
+
+@router.put("/update-learning-path/{path_id}")
+async def update_learning_path(path_id: int, body: dict, request: Request, db_dep=Depends(get_db)):
+    """
+    Updates a learning path's title and description for the logged-in user.
+    body = {
+        "title": "New Title",
+        "description": "New Description"
+    }
+    """
+    cursor, conn = db_dep
+    try:
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details["user_id"]
+
+        title = body.get("title")
+        description = body.get("description")
+
+        if not title:
+            raise HTTPException(status_code=400, detail="Title is required")
+
+        await learning_path_db.update_learning_path(cursor, conn, user_id, path_id, title, description)
+        return {"message": "Learning path updated successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating learning path: {e}")
+    
+@router.delete("/delete-learning-path/{path_id}")
+async def delete_learning_path(path_id: int, request: Request, db_dep=Depends(get_db)):
+    """
+    Deletes a learning path and all associated items for the logged-in user.
+    """
+    cursor, conn = db_dep
+    try:
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details["user_id"]
+
+        await learning_path_db.delete_learning_path(cursor, conn, user_id, path_id)
+        return {"message": "Learning path and its items deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting learning path: {e}")
 
 # Add new item
 @router.post("/add-learning-path-items/{path_id}")
@@ -188,3 +271,20 @@ async def remove_path_item(item_id: int, request: Request, db_dep=Depends(get_db
 
     await learning_path_db.delete_path_item(cursor, conn, item_id, user_id)
     return {"success": True}
+
+@router.get("/get_learning_path_progress")
+async def get_learning_path_progress_route(request_obj: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details.get("user_id")
+        
+        print(f"✅ Fetching learning path progress for user_id: {user_id}")
+
+        progress = await learning_path_db.get_learning_path_progress(cursor, conn, user_id)
+        return progress
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error fetching learning path progress: {str(e)}")
