@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 import json
-from datetime import timedelta, datetime
+from datetime import datetime, date, timedelta
 from .redis_db.redis_cache_clear import clear_user_cache
 from .redis_db import redis_db_services
 from ..database import routine_db
@@ -340,7 +340,8 @@ async def toggle_routine(cursor, conn, user_id, routine_id):
         if not row:
             raise HTTPException(status_code=404, detail="Routine not found")
 
-        today = datetime.date.today()
+        # today = datetime.date.today()
+        today = date.today()
         last_completed = row.get("last_completed_date")
 
         # Reset is_completed_today if last_completed is not today
