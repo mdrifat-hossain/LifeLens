@@ -9,6 +9,9 @@ import { GiHotMeal } from "react-icons/gi";
 import { MdLocalGroceryStore } from "react-icons/md";
 import { IoTimerSharp } from "react-icons/io5";
 import trackerIcon from '../../assets/tracker-icon.png';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { motion, AnimatePresence } from "framer-motion";
+
 
 const faqs = [
     {
@@ -28,6 +31,35 @@ const faqs = [
         answer: "Absolutely. Your privacy is our priority.",
     },
 ];
+
+const reviews = [
+    {
+        name: "Sarah Johnson",
+        role: "Aarav, Student & Aspiring Data Analyst",
+        text: "LifeLens helped me balance my studies, eat healthier, and land a remote internship—all with one dashboard.",
+        img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDLq4Gluj56kRW1tf_gkZ8vnCZ64DGzMEn9pwlOMWiSrOSEMRzIY5QvxXoDHOOXSiLY4InFs5TDQxtDweIPXs5nBUQ3j8CBbNAJ_AI_bfaSrskH7eXVppHdzp8Fp0uTq2XJbnNwHakwDo9QAeCS13fmYK3ktRiyClzOOqEVzCHewffJuaED46phHAzSoZJoLpM_CtlVeWvYtb58aUmOBaXoKG0MgIJjaz4pAOkFOTbJfZayIo0IT2Q0yrFRPInOkZMX472v8pktm7g",
+    },
+    {
+        name: "John Smith",
+        role: "Software Engineer",
+        text: "LifeLens is a game changer! It keeps me productive, healthy, and focused on my career goals every single day.",
+        img: "https://randomuser.me/api/portraits/men/32.jpg",
+    },
+    {
+        name: "Emily Davis",
+        role: "Freelance Designer",
+        text: "I love how LifeLens tracks everything from meals to finances. I finally feel in control of my life.",
+        img: "https://randomuser.me/api/portraits/women/44.jpg",
+    },
+    {
+        name: "Michael Lee",
+        role: "Entrepreneur",
+        text: "The insights I get daily from LifeLens help me make smarter decisions both personally and professionally.",
+        img: "https://randomuser.me/api/portraits/men/65.jpg",
+    },
+];
+
+const headline = "Live Smarter with LifeLens : Your AI Companion for Health, Productivity & Growth";
 
 export default function LandingPage() {
     const [openIndex, setOpenIndex] = useState(null);
@@ -50,13 +82,44 @@ export default function LandingPage() {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
+    const [current, setCurrent] = useState(0);
+
+    // Automatically cycle reviews every 5 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrent((prev) => (prev + 1) % reviews.length);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const [displayedText, setDisplayedText] = useState("");
+    const [aiHighlight, setAiHighlight] = useState(false);
+
+    useEffect(() => {
+        let i = 0;
+        const interval = setInterval(() => {
+            const nextChar = headline[i];
+            setDisplayedText((prev) => prev + nextChar);
+
+            // Trigger AI effect when "AI" is typed
+            if (headline.slice(i - 1, i + 1) === "AI") {
+                setAiHighlight(true);
+                setTimeout(() => setAiHighlight(false), 500); // pulse for 0.5s
+            }
+
+            i++;
+            if (i >= headline.length) clearInterval(interval);
+        }, 60); // typing speed
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <body class="bg-emerald-50 text-text-dark font-display">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <header
                     className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled
-                            ? "bg-white/50 backdrop-blur-md shadow-md"
-                            : "bg-transparent"
+                        ? "bg-white/50 backdrop-blur-md shadow-md"
+                        : "bg-transparent"
                         }`}
                 >
                     <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -116,8 +179,20 @@ export default function LandingPage() {
                                     <span className="material-icons text-sm ml-1">chevron_right</span>
                                 </div> */}
                                 <h1 className="text-5xl md:text-6xl font-extrabold leading-tight text-black dark:text-black">
-                                    Live Smarter with <br />
-                                    <span className="text-primary">LifeLens</span> : Your AI Companion for Health, Productivity & Growth
+                                    {displayedText.split("AI").map((part, index, arr) => (
+                                        <span key={index}>
+                                            {part}
+                                            {index < arr.length - 1 && (
+                                                <motion.span
+                                                    className="text-primary"
+                                                    animate={aiHighlight ? { scale: [1, 1.5, 1] } : {}}
+                                                    transition={{ duration: 0.3 }}
+                                                >
+                                                    AI
+                                                </motion.span>
+                                            )}
+                                        </span>
+                                    ))}
                                 </h1>
                                 <p className="text-lg text-text-secondary-dark max-w-lg">
 
@@ -152,14 +227,26 @@ export default function LandingPage() {
                             </div>
                             <div className="relative w-full max-w-xl mx-auto">
                                 {/* Main Image */}
-                                <img
+                                {/* <img
                                     alt="Person trading crypto on a laptop"
                                     className="rounded-2xl shadow-2xl w-full"
                                     src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjPcV7hxh_ylX-qLXaurN2zBBnUNBqENx9dTIFraSQAIqhEZqAWw4ziMQJk3KOElK1HfX0xPkDn5_C8-FR6x7MfX-rdHQj8jyJhEsCMk3GQW6QLwQCMrXkLhiwNjWCTcaTgQVqs58a_poOilAr7plFx7fUmvqxhDokcpQ0kAyx5xmwv9E3ccqOkp3zt3DqQDCB30tIspusXRQUJ06kzcqbMRONnTJlkvRURejjXPjr4xGkvwdC5JtBe3xXY2acyZ-3nOFd2-wBEdk"
+                                /> */}
+                                <DotLottieReact
+                                    className="rounded-2xl shadow-2xl w-full"
+                                    src="https://lottie.host/2196a326-5692-41e9-bc35-23627c3defc0/3cfGLUuZtg.lottie"
+                                    loop
+                                    autoplay
                                 />
 
-                                {/* Security Level Card - top-left, partially outside */}
-                                <div className="absolute -top-8 -left-8 bg-card-dark/80 backdrop-blur-sm p-4 rounded-lg shadow-lg flex items-center space-x-3 max-w-xs">
+
+                            </div>
+
+
+                        </div>
+                    </section>
+                    {/* Security Level Card - top-left, partially outside */}
+                    {/* <div className="absolute -top-8 -left-8 bg-card-dark/80 backdrop-blur-sm p-4 rounded-lg shadow-lg flex items-center space-x-3 max-w-xs">
                                     <div className="p-2 bg-purple-200 rounded-full flex items-center justify-center">
                                         <span className="material-icons text-primary text-lg">security</span>
                                     </div>
@@ -167,21 +254,16 @@ export default function LandingPage() {
                                         <p className="text-sm text-text-secondary-dark"> Data Protection Level</p>
                                         <p className="font-bold text-white">Enterprise</p>
                                     </div>
-                                </div>
+                                </div> */}
 
-                                {/* 24h Change Card - bottom-right, partially outside */}
-                                <div className="absolute -bottom-3 -right-3 bg-card-dark/80 backdrop-blur-sm p-4 rounded-lg shadow-lg max-w-xs">
+                    {/* 24h Change Card - bottom-right, partially outside */}
+                    {/* <div className="absolute -bottom-3 -right-3 bg-card-dark/80 backdrop-blur-sm p-4 rounded-lg shadow-lg max-w-xs">
                                     <div className="flex items-center text-green-600 font-bold mt-1">
                                         <p className="text-sm text-text-secondary-dark">Daily Productivity</p>
                                         <span className="material-icons text-lg mr-1">arrow_upward</span>
                                         <p></p>
                                     </div>
-                                </div>
-                            </div>
-
-
-                        </div>
-                    </section>
+                                </div> */}
                     <section className="py-20">
                         <div className="text-center mb-12">
                             <h3 className="text-4xl font-bold">Powerful Features</h3>
@@ -190,66 +272,36 @@ export default function LandingPage() {
                                 beginners and professional traders.
                             </p>
                         </div>
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                {/* <span className="material-icons text-primary text-3xl">
-                                    timeline
-                                </span> */}
-                                <GiHotMeal className="text-primary text-3xl" />
-                                <h4 className="font-bold text-xl mt-4"> Meal Plan Assistant</h4>
-                                <p className="text-text-secondary-dark mt-2">
-                                    Suggests daily meals based on health, preferences, and available ingredients
-                                </p>
-                            </div>
-                            <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                {/* <span className="material-icons text-primary text-3xl">shield</span> */}
-                                <MdLocalGroceryStore className="text-primary text-3xl" />
-                                <h4 className="font-bold text-xl mt-4">Smart Grocery Planner</h4>
-                                <p className="text-text-secondary-dark mt-2">
-                                    Builds weekly grocery lists using budget, image uploads, or manual input
-                                </p>
-                            </div>
-                            <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                {/* <span className="material-icons text-primary text-3xl">bolt</span> */}
-                                <IoTimerSharp className="text-primary text-3xl" />
-                                <h4 className="font-bold text-xl mt-4"> Time Manager</h4>
-                                <p className="text-text-secondary-dark mt-2">
-                                    Creates routines and suggests recreational breaks
-                                </p>
-                            </div>
-                            <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                {/* <span className="material-icons text-primary text-3xl">
-                                    pie_chart
-                                </span> */}
-                                <GiPathDistance className="text-primary text-3xl" />
-                                <h4 className="font-bold text-xl mt-4">Career Path Advisor </h4>
-                                <p className="text-text-secondary-dark mt-2">
-                                    Recommends jobs, internships, and learning paths based on your profile
-                                </p>
-                            </div>
-                            <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                {/* <span className="material-icons text-primary text-3xl">
-                                    notifications
-                                </span> */}
-                                <FaProjectDiagram className="text-primary text-3xl" />
-                                <h4 className="font-bold text-xl mt-4">Project Generator</h4>
-                                <p className="text-text-secondary-dark mt-2">
-                                    Proposes new project ideas based on recently learned skills
-                                </p>
-                            </div>
-                            <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                {/* <span className="material-icons text-primary text-3xl">
-                                    ac_unit
-                                </span> */}
-                                <img src={trackerIcon} alt="Financial Tracker" className='text-3xl' />
-                                <h4 className="font-bold text-xl mt-4">Financial Tracker</h4>
-                                <p className="text-gray-700 mt-2">
-                                    Analyzes spending and offers saving strategies
-                                </p>
-                            </div>
 
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {[
+                                { Icon: GiHotMeal, title: "Meal Plan Assistant", desc: "Suggests daily meals based on health, preferences, and available ingredients" },
+                                { Icon: MdLocalGroceryStore, title: "Smart Grocery Planner", desc: "Builds weekly grocery lists using budget, image uploads, or manual input" },
+                                { Icon: IoTimerSharp, title: "Time Manager", desc: "Creates routines and suggests recreational breaks" },
+                                { Icon: GiPathDistance, title: "Career Path Advisor", desc: "Recommends jobs, internships, and learning paths based on your profile" },
+                                { Icon: FaProjectDiagram, title: "Project Generator", desc: "Proposes new project ideas based on recently learned skills" },
+                                { Icon: null, title: "Financial Tracker", desc: "Analyzes spending and offers saving strategies", img: trackerIcon },
+                            ].map((feature, index) => (
+                                <motion.div
+                                    key={index}
+                                    className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg"
+                                    initial={{ opacity: 0, y: 50 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: false, amount: 0.3 }}
+                                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                                >
+                                    {feature.Icon ? (
+                                        <feature.Icon className="text-primary text-3xl" />
+                                    ) : (
+                                        <img src={feature.img} alt={feature.title} className="w-10 h-10" />
+                                    )}
+                                    <h4 className="font-bold text-xl mt-4">{feature.title}</h4>
+                                    <p className="text-text-secondary-dark mt-2">{feature.desc}</p>
+                                </motion.div>
+                            ))}
                         </div>
                     </section>
+
                     <section className="py-20">
                         <div className="text-center mb-12">
                             <h3 className="text-4xl font-bold">How It Works</h3>
@@ -258,91 +310,117 @@ export default function LandingPage() {
                                 to begin your crypto.
                             </p>
                         </div>
+
                         <div className="grid md:grid-cols-3 gap-8">
-                            <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                <div className="flex items-center space-x-4">
-                                    <span className="text-primary font-bold text-xl">01</span>
-                                    <h4 className="font-bold text-xl">Create Your Profile</h4>
-                                </div>
-                                <p className="text-text-secondary-dark mt-4">
-                                    Tell us about your goals, habits, and preferences.
-
-                                </p>
-                            </div>
-                            <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                <div className="flex items-center space-x-4">
-                                    <span className="text-primary font-bold text-xl">02</span>
-                                    <h4 className="font-bold text-xl">Choose Your Focus Areas</h4>
-                                </div>
-                                <p className="text-text-secondary-dark mt-4">
-                                    Select health, productivity, career, or finance—or all of them.
-
-
-                                </p>
-                            </div>
-                            <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg">
-                                <div className="flex items-center space-x-4">
-                                    <span className="text-primary font-bold text-xl">03</span>
-                                    <h4 className="font-bold text-xl">Let LifeLens Guide You</h4>
-                                </div>
-                                <p className="text-text-secondary-dark mt-4">
-                                    Get personalized plans, suggestions, and insights every day.
-                                </p>
-                            </div>
+                            {[
+                                {
+                                    number: "01",
+                                    title: "Create Your Profile",
+                                    desc: "Tell us about your goals, habits, and preferences.",
+                                },
+                                {
+                                    number: "02",
+                                    title: "Choose Your Focus Areas",
+                                    desc: "Select health, productivity, career, or finance—or all of them.",
+                                },
+                                {
+                                    number: "03",
+                                    title: "Let LifeLens Guide You",
+                                    desc: "Get personalized plans, suggestions, and insights every day.",
+                                },
+                            ].map((step, index) => (
+                                <motion.div
+                                    key={index}
+                                    className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg"
+                                    initial={{ opacity: 0, y: 60 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    // viewport={{ once: true, amount: 0.3 }}
+                                    viewport={{ once: false, amount: 0.3 }}
+                                    transition={{ duration: 0.6, delay: index * 0.2 }}
+                                >
+                                    <div className="flex items-center space-x-4">
+                                        <span className="text-primary font-bold text-xl">{step.number}</span>
+                                        <h4 className="font-bold text-xl">{step.title}</h4>
+                                    </div>
+                                    <p className="text-text-secondary-dark mt-4">{step.desc}</p>
+                                </motion.div>
+                            ))}
                         </div>
-                        <div className="text-center mt-12">
+
+                        <motion.div
+                            className="text-center mt-12"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            // viewport={{ once: true }}
+                            viewport={{ once: false }}
+                            transition={{ duration: 0.6, delay: 0.8 }}
+                        >
                             <Link
-                                className="bg-primary text-white px-6 py-3 rounded-lg font-medium"
+                                className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-shadow"
                                 to="/sign-in"
                             >
                                 Get Started with LifeLens
                             </Link>
-                            {/* <a
-                                className="bg-primary text-white px-6 py-3 rounded-lg font-medium"
-                                href="#"
-                            >
-                                Get Started Now
-                            </a> */}
-                        </div>
+                        </motion.div>
                     </section>
+
                     <section className="py-20">
                         <div className="text-center mb-12">
                             <h3 className="text-4xl font-bold">What Our Users Say</h3>
                             <p className="mt-2 text-text-secondary-dark">
-                                Join thousands of users transforming their lives with LifeLens—your all-in-one AI guide for smarter health, productivity, career, and finances
+                                Join thousands of users transforming their lives with LifeLens—your
+                                all-in-one AI guide for smarter health, productivity, career, and
+                                finances
                             </p>
                         </div>
-                        <div className="bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
-                            <div className="flex justify-center mb-4">
-                                <span className="material-icons text-yellow-400">star</span>
-                                <span className="material-icons text-yellow-400">star</span>
-                                <span className="material-icons text-yellow-400">star</span>
-                                <span className="material-icons text-yellow-400">star</span>
-                                <span className="material-icons text-yellow-400">star</span>
-                            </div>
-                            <p className="text-xl italic">
-                                “LifeLens helped me balance my studies, eat healthier, and land a remote internship—all with one dashboard.”
 
-
-                            </p>
-                            <div className="mt-6 flex items-center justify-center space-x-3">
-                                <img
-                                    alt="Profile picture of Sarah Johnson"
-                                    className="w-12 h-12 rounded-full"
-                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLq4Gluj56kRW1tf_gkZ8vnCZ64DGzMEn9pwlOMWiSrOSEMRzIY5QvxXoDHOOXSiLY4InFs5TDQxtDweIPXs5nBUQ3j8CBbNAJ_AI_bfaSrskH7eXVppHdzp8Fp0uTq2XJbnNwHakwDo9QAeCS13fmYK3ktRiyClzOOqEVzCHewffJuaED46phHAzSoZJoLpM_CtlVeWvYtb58aUmOBaXoKG0MgIJjaz4pAOkFOTbJfZayIo0IT2Q0yrFRPInOkZMX472v8pktm7g"
-                                />
-                                <div>
-                                    <p className="font-semibold">Sarah Johnson</p>
-                                    <p className="text-sm text-text-secondary-dark">
-                                        Aarav, Student & Aspiring Data Analyst
-                                    </p>
-                                </div>
-                            </div>
+                        <div className="relative max-w-2xl mx-auto h-64 overflow-hidden">
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={current}
+                                    className="absolute inset-0 bg-white/50 backdrop-blur-md p-6 rounded-lg shadow-lg flex flex-col justify-center items-center text-center"
+                                    initial={{ x: 300, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    exit={{ x: -300, opacity: 0 }}
+                                    transition={{ duration: 0.8 }}
+                                >
+                                    <div className="flex justify-center mb-4">
+                                        {[...Array(5)].map((_, i) => (
+                                            <span
+                                                key={i}
+                                                className="material-icons text-yellow-400"
+                                            >
+                                                star
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <p className="text-xl italic mb-6">{reviews[current].text}</p>
+                                    <div className="flex items-center justify-center space-x-3">
+                                        <img
+                                            src={reviews[current].img}
+                                            alt={reviews[current].name}
+                                            className="w-12 h-12 rounded-full"
+                                        />
+                                        <div>
+                                            <p className="font-semibold">{reviews[current].name}</p>
+                                            <p className="text-sm text-text-secondary-dark">
+                                                {reviews[current].role}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </AnimatePresence>
                         </div>
+
+                        {/* Pagination dots */}
                         <div className="flex justify-center space-x-2 mt-8">
-                            <button className="w-2 h-2 rounded-full bg-gray-600" />
-                            <button className="w-2 h-2 rounded-full bg-primary" />
-                            <button className="w-2 h-2 rounded-full bg-gray-600" />
+                            {reviews.map((_, index) => (
+                                <button
+                                    key={index}
+                                    className={`w-2 h-2 rounded-full ${index === current ? "bg-primary" : "bg-gray-600"
+                                        }`}
+                                />
+                            ))}
                         </div>
                     </section>
                     {/* <section className="py-20">
@@ -520,9 +598,13 @@ export default function LandingPage() {
 
                         <div className="max-w-3xl mx-auto space-y-4">
                             {faqs.map((faq, index) => (
-                                <div
+                                <motion.div
                                     key={index}
-                                    className="bg-white/30 backdrop-blur-md rounded-lg shadow-lg overflow-hidden transition-all"
+                                    className="bg-white/30 backdrop-blur-md rounded-lg shadow-lg overflow-hidden"
+                                    initial={{ opacity: 0, y: 40 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                                    viewport={{ once: false, amount: 0.3 }}
                                 >
                                     <button
                                         onClick={() => toggleFAQ(index)}
@@ -538,11 +620,18 @@ export default function LandingPage() {
                                             <p>{faq.answer}</p>
                                         </div>
                                     )}
-                                </div>
+                                </motion.div>
                             ))}
                         </div>
+
                     </section>
-                    <section className="py-20">
+                    <motion.section
+                        className="py-20"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.7 }}
+                        viewport={{ once: false, amount: 0.3 }}
+                    >
                         <div className="bg-card-dark rounded-lg p-12 text-center">
                             <h3 className="text-4xl font-bold">
                                 Ready to transform your daily life with
@@ -550,25 +639,18 @@ export default function LandingPage() {
                             </h3>
                             <p className="mt-4 text-text-secondary-dark max-w-2xl mx-auto">
                                 Join thousands of users already optimizing their health, productivity, career, and finances with LifeLens.
-
-
                             </p>
                             <div className="mt-8 flex justify-center space-x-4">
                                 <a
-                                    className="bg-primary text-white px-6 py-3 rounded-lg font-medium"
+                                    className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-shadow"
                                     href="#"
                                 >
                                     Get Started
                                 </a>
-                                {/* <a
-                                    className="bg-gray-700 text-white px-6 py-3 rounded-lg font-medium"
-                                    href="#"
-                                >
-                                    Contact Sales
-                                </a> */}
                             </div>
                         </div>
-                    </section>
+                    </motion.section>
+
                 </main>
                 <footer className="py-12 border-t border-gray-800">
                     <div className="grid md:grid-cols-5 gap-8">
