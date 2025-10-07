@@ -55,11 +55,17 @@ async def career_ai_help(req: ConversationRequest, request_obj: Request = None, 
         messages = req.conversation[-20:]
         if(messages[0] == "Hi 👋 How can I help you today?"):
             messages.pop(0)
-            
+        
 
-    
+            
         ai_reply = await ai_chat_manager(domains=domains, query=query, message_context=messages)
         print("✅ ai_reply:", ai_reply)
+        
+                # inside career_ai_help
+        path_exists_in_routine = await learning_path_db.is_path_in_weekly_routines(cursor, user_id, req.path_id)
+
+        if path_exists_in_routine and ai_reply.get("routines"):
+            ai_reply["routines"] = []  # remove routines if path already exists
 
         return JSONResponse(content={"ai_reply": json.loads(json.dumps(ai_reply))})
 
@@ -83,7 +89,7 @@ async def add_learning_path(request_obj: Request, path_id: int, db_dep=Depends(g
         # await cursor.execute("SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM learningpathitems WHERE path_id = %s", (path_id,))
         # row = await cursor.fetchone()
         # last_order = row["max_order"] if row else 0
-        print("✅ Adding learning path for user_id:", user_id)
+        # print("✅ Adding learning path for user_id:", user_id)
         # 2️⃣ Insert levels/items
         for idx, level in enumerate(path["levels"], start=1):
             await learning_path_db.create_path_item(
@@ -126,29 +132,37 @@ async def add_learning_path(request_obj: Request, path_id: int, db_dep=Depends(g
         # 3️⃣ Insert weekly routines
         path_title = path["path_title"]
         path_type = f"path_{path_id}"
-        for routine in path.get("routines", []):
-            # Convert start/end time strings to time objects
-            start_time = datetime.strptime(routine["start_time"], "%H:%M").time()
-            end_time = datetime.strptime(routine["end_time"], "%H:%M").time()
+        path_exists_in_routine = await learning_path_db.is_path_in_weekly_routines(cursor, user_id, path_id)
 
-            routine_id = await learning_path_db.create_weekly_routine(
-                cursor,
-                conn,
-                user_id=user_id,
-                routine_name=path_title,
-                start_time=start_time,
-                end_time=end_time,
-                color="#ccccff",
-                description=routine.get("description", ""),
-                path_type=path_type,
-                path_id=path_id
-            )
+        # Only insert routines if not already exists
+        if not path_exists_in_routine:
+            for routine in path.get("routines", []):
+                # Convert start/end time strings to time objects
+                start_time = datetime.strptime(routine["start_time"], "%H:%M").time()
+                end_time = datetime.strptime(routine["end_time"], "%H:%M").time()
 
-            # Convert full day name to short form before inserting into routine_days
-            day_short = DAY_SHORT.get(routine["day_of_week"], routine["day_of_week"][:3])
-            await learning_path_db.create_routine_day(cursor, conn, user_id, routine_id, day_short)
+                routine_id = await learning_path_db.create_weekly_routine(
+                    cursor,
+                    conn,
+                    user_id=user_id,
+                    routine_name=path_title,
+                    start_time=start_time,
+                    end_time=end_time,
+                    color="#ccccff",
+                    description=routine.get("description", ""),
+                    path_type=path_type,
+                    path_id=path_id
+                )
 
-            print(f"✅ Inserted routine for {routine['day_of_week']} ({day_short}) with ID: {routine_id}")
+                # Convert full day name to short form before inserting into routine_days
+                day_short = DAY_SHORT.get(routine["day_of_week"], routine["day_of_week"][:3])
+                
+                await learning_path_db.create_routine_day(cursor, conn, user_id, routine_id, day_short)
+
+            # print(f"✅ Inserted new weekly routines for path_id: {path_id}")
+        # else:
+        #     print(f"⚠️ Weekly routines already exist for path_id: {path_id} — skipping creation")
+
         return {"success": True, "path_id": path_id}
 
     except Exception as e:

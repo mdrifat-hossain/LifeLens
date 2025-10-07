@@ -55,14 +55,14 @@ function CareerDashboard() {
 
     return (
         <div className="container mx-auto p-8 space-y-8">
-            <div className="gradient-bg text-white  rounded-xl shadow-lg">
+            <div className="gradient-bg text-black dark:text-white rounded-xl">
                 <h1 className="text-4xl font-bold">Your Financial Technology Learning Journey</h1>
                 <p className="mt-2 text-lg">Master the skills needed to build sophisticated financial applications and advance
                     your career in fintech.</p>
                 <div className="mt-6 flex space-x-4">
-                    <div className="bg-white/20 px-4 py-2 rounded-lg text-sm">Progress: 65%</div>
-                    <div className="bg-white/20 px-4 py-2 rounded-lg text-sm">12 Skills Acquired</div>
-                    <div className="bg-white/20 px-4 py-2 rounded-lg text-sm">8 Projects Completed</div>
+                    <div className="bg-gray-400 dark:bg-white/20 px-4 py-2 rounded-lg text-sm">Progress: 65%</div>
+                    <div className="bg-gray-400 dark:bg-white/20 px-4 py-2 rounded-lg text-sm">12 Skills Acquired</div>
+                    <div className="bg-gray-400 dark:bg-white/20 px-4 py-2 rounded-lg text-sm">8 Projects Completed</div>
                 </div>
             </div>
 
@@ -92,85 +92,113 @@ function CareerDashboard() {
                         </Link>
                     </div>
 
-                    <div className="space-y-8 relative">
-                        {/* Timeline line */}
-                        <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-
-                        {Array.isArray(levels) && levels.length > 0 ? (
-                            levels.map((item, idx) => (
-                                <div key={idx} className="flex items-start">
-                                    {/* Circle status */}
-                                    <div className="z-10 flex-shrink-0">
-                                        <div
-                                            className={`rounded-full h-10 w-10 flex items-center justify-center ${item.status === "Completed"
-                                                ? "bg-green-500 text-white"
-                                                : item.status === "In Progress"
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-300 text-gray-500"
-                                                }`}
-                                        >
-                                            <span className="material-icons">
-                                                {item.status === "Completed"
-                                                    ? "check"
-                                                    : item.status === "In Progress"
-                                                        ? "play_arrow"
-                                                        : "lock"}
-                                            </span>
-                                        </div>
+                    <div className="space-y-12">
+                        {levels.length > 0
+                            ? Object.entries(
+                                levels.reduce((acc, item) => {
+                                    if (!acc[item.path_title]) acc[item.path_title] = [];
+                                    acc[item.path_title].push(item);
+                                    return acc;
+                                }, {})
+                            ).map(([pathTitle, pathLevels], idx) => (
+                                <div key={idx} className="space-y-8">
+                                    {/* Learning Path Title */}
+                                    <div className="mb-6">
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                            {pathTitle}
+                                        </h2>
+                                        {pathLevels[0].path_description && (
+                                            <p className="text-gray-600 dark:text-gray-300 mt-1">
+                                                {pathLevels[0].path_description}
+                                            </p>
+                                        )}
                                     </div>
 
-                                    {/* Text section */}
-                                    <div className="ml-6 flex-grow">
-                                        <h3
-                                            className={`font-semibold ${item.status === "Locked"
-                                                ? "text-gray-400"
-                                                : "text-gray-900"
-                                                }`}
-                                        >
-                                            {item.title}
-                                        </h3>
-                                        <p
-                                            className={`text-sm ${item.status === "Locked"
-                                                ? "text-gray-400"
-                                                : "text-gray-500"
-                                                }`}
-                                        >
-                                            {item.description}
-                                        </p>
+                                    {/* Timeline + Levels */}
+                                    <div className="relative pl-10">
+                                        {/* Vertical timeline line */}
+                                        <div className="absolute left-15 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
 
-                                        {/* Tags + Duration */}
-                                        <div className="mt-2 flex items-center space-x-2">
-                                            <span
-                                                className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${item.status === "Completed"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : item.status === "In Progress"
-                                                        ? "bg-blue-100 text-blue-700"
-                                                        : "bg-gray-200 text-gray-600"
-                                                    }`}
-                                            >
-                                                {item.status}
-                                            </span>
-                                            <span className="text-gray-400 text-sm">
-                                                {item.duration_weeks} weeks
-                                            </span>
-                                        </div>
+                                        {pathLevels.map((item, i) => (
+                                            <div key={i} className="flex items-start mb-6">
+                                                {/* Circle status */}
+                                                <div className="z-10 flex-shrink-0 relative">
+                                                    <div
+                                                        className={`rounded-full h-10 w-10 flex items-center justify-center ${item.status === "Completed"
+                                                            ? "bg-green-500 text-white"
+                                                            : item.status === "In Progress"
+                                                                ? "bg-blue-600 text-white"
+                                                                : "bg-gray-300 text-gray-500"
+                                                            }`}
+                                                    >
+                                                        <span className="material-icons">
+                                                            {item.status === "Completed"
+                                                                ? "check"
+                                                                : item.status === "In Progress"
+                                                                    ? "play_arrow"
+                                                                    : "lock"}
+                                                        </span>
+                                                    </div>
+                                                </div>
 
-                                        {/* Progress bar */}
-                                        {item.status === "In Progress" && (
-                                            <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                                                <div
-                                                    className="bg-blue-600 h-2 rounded-full"
-                                                    style={{ width: `${item.progress}%` }}
-                                                ></div>
+                                                {/* Text section */}
+                                                <div className="ml-6 flex-grow">
+                                                    <h3
+                                                        className={`font-semibold ${item.status === "Locked"
+                                                            ? "text-gray-400"
+                                                            : "text-gray-900 dark:text-white"
+                                                            }`}
+                                                    >
+                                                        {item.title}
+                                                    </h3>
+                                                    <p
+                                                        className={`text-sm ${item.status === "Locked"
+                                                            ? "text-gray-400"
+                                                            : "text-gray-500 dark:text-gray-300"
+                                                            }`}
+                                                    >
+                                                        {item.description}
+                                                    </p>
+
+                                                    {/* Tags + Duration */}
+                                                    <div className="mt-2 flex items-center space-x-2">
+                                                        <span
+                                                            className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${item.status === "Completed"
+                                                                ? "bg-green-100 text-green-700"
+                                                                : item.status === "In Progress"
+                                                                    ? "bg-blue-100 text-blue-700"
+                                                                    : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                                                                }`}
+                                                        >
+                                                            {item.status}
+                                                        </span>
+                                                        <span className="text-gray-400 dark:text-gray-300 text-sm">
+                                                            {item.duration_weeks} weeks
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Progress bar */}
+                                                    {item.status === "In Progress" && (
+                                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-3">
+                                                            <div
+                                                                className="bg-blue-600 h-2 rounded-full"
+                                                                style={{ width: `${item.progress}%` }}
+                                                            ></div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
                                 </div>
                             ))
-                        ) : (
-                            <div className="text-gray-500">No progress data available</div>
-                        )}
+                            : (
+                                <div className="text-gray-500 dark:text-gray-400">No progress data available</div>
+                            )}
                     </div>
+
+
+
                 </div>
                 <div className="space-y-8">
                     <div className="bg-white p-6 rounded-xl shadow-md">

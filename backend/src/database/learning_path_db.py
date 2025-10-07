@@ -9,21 +9,38 @@ from datetime import datetime
 
 async def create_learning_path(cursor, conn, user_id, title, description, created_by):
     try:
-        print("✅ ", user_id, title)  # Debugging line
-        sql = """
-            INSERT INTO LearningPathList (user_id, title, description, created_by, created_at)
-            VALUES (%s, %s, %s, %s, %s)
+        print("✅ Creating path for:", user_id, title)
+
+        # 1️⃣ Find the current highest sort_order for this user
+        sql_max_order = """
+            SELECT COALESCE(MAX(sort_order), 0) AS max_order
+            FROM LearningPathList
+            WHERE user_id = %s
+        """
+        await cursor.execute(sql_max_order, (user_id,))
+        row = await cursor.fetchone()
+        next_sort_order = row['max_order'] + 1  # next order
+
+        # 2️⃣ Insert the new path with the calculated sort_order
+        sql_insert = """
+            INSERT INTO LearningPathList 
+                (user_id, title, description, created_by, created_at, sort_order)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
         await cursor.execute(
-            sql, (user_id, title, description, created_by, datetime.now())
+            sql_insert,
+            (user_id, title, description, created_by, datetime.now(), next_sort_order)
         )
+
         path_id = cursor.lastrowid
         await conn.commit()
         return path_id
+
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"DB error in create_learning_path: {e}"
         )
+
 
 
 # ✅ Get all learning paths for a user
@@ -125,6 +142,17 @@ async def get_routine_details_for_ai(cursor, user_id):
         raise HTTPException(
             status_code=500, detail=f"DB error in get_routine_details_for_ai: {e}"
         )
+        
+async def is_path_in_weekly_routines(cursor, user_id: int, path_id: int) -> bool:
+    """
+    Checks if a given path_id exists in weekly_routines for the user.
+    Returns True if exists, False otherwise.
+    """
+    sql = "SELECT COUNT(*) AS count FROM weekly_routines WHERE path_id = %s AND user_id = %s"
+    await cursor.execute(sql, (path_id, user_id))
+    row = await cursor.fetchone()
+    return row['count'] > 0
+
 
 
 # async def create_path_item(
@@ -309,9 +337,13 @@ async def delete_learning_path(cursor, conn, user_id, path_id):
     Deletes a learning path and all its items for the given user.
     """
     try:
+        weekly_routines = "DELETE FROM weekly_routines WHERE path_id = %s AND user_id = %s"
+        await cursor.execute(weekly_routines, (path_id, user_id))
+        
         # 1️⃣ Delete all items associated with this path
         sql_items = "DELETE FROM LearningPathItems WHERE path_id = %s AND user_id = %s"
         await cursor.execute(sql_items, (path_id, user_id))
+
 
         # 2️⃣ Delete the path itself
         sql_path = "DELETE FROM LearningPathList WHERE path_id = %s AND user_id = %s"
@@ -579,12 +611,13 @@ async def get_learning_path_progress(cursor, conn, user_id):
             ORDER BY sort_order
         """, (user_id,))
         paths = await cursor.fetchall()
-        print(f"✅ Found {paths} active learning paths for user_id: {user_id}")
+        print(f"✅ Found {len(paths)} active learning paths for user_id: {user_id}")
 
         result = []
 
         for path in paths:
             path_id = path["path_id"]
+            path_title = path["title"]  # Learning path title
 
             # 2. Get completed days
             await cursor.execute("""
@@ -598,12 +631,20 @@ async def get_learning_path_progress(cursor, conn, user_id):
 
             # 3. Get levels (items)
             await cursor.execute("""
-                SELECT item_id, title, description, duration,
-                       CAST(SUBSTRING_INDEX(duration, ' ', 1) AS UNSIGNED) AS weeks
-                FROM learningpathitems
-                WHERE path_id = %s
-                ORDER BY sort_order
-            """, (path_id,))
+                SELECT 
+                    l.title AS path_title,
+                    i.item_id,
+                    i.title AS item_title,
+                    i.description,
+                    i.duration,
+                    CAST(SUBSTRING_INDEX(i.duration, ' ', 1) AS UNSIGNED) AS weeks
+                FROM learningpathitems i
+                JOIN learningpathlist l 
+                    ON i.path_id = l.path_id
+                WHERE i.path_id = %s 
+                AND l.user_id = %s
+                ORDER BY i.sort_order;
+            """, (path_id,user_id))
             items = await cursor.fetchall()
 
             prev_weeks = 0
@@ -613,22 +654,19 @@ async def get_learning_path_progress(cursor, conn, user_id):
                 progress = 0
 
                 if completed_weeks >= weeks_required:
-                    # fully completed this level
                     status = "Completed"
                     progress = 100
-
                 elif completed_weeks >= prev_weeks and completed_weeks < weeks_required:
-                    # user is inside this level (even if < 1 week)
                     status = "In Progress"
                     total_level_days = (weeks_required - prev_weeks) * 7
                     current_level_days = (completed_weeks - prev_weeks) * 7 + (completed_days % 7)
                     progress = int((current_level_days / total_level_days) * 100)
-
                 else:
                     status = "Locked"
 
                 result.append({
-                    "title": item["title"],
+                    "path_title": path_title,          # Added learning path title
+                    "title": item["item_title"],       # Level/item title
                     "description": item["description"],
                     "duration_weeks": weeks_required,
                     "status": status,
@@ -638,7 +676,6 @@ async def get_learning_path_progress(cursor, conn, user_id):
                 prev_weeks = weeks_required
 
         print(f"✅ Learning path progress for user_id {user_id}: {result}")
-        
         return result
 
     except Exception as e:

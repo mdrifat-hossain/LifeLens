@@ -233,16 +233,21 @@ function ProductSearch() {
     );
 
     const handleAddToMainList = async () => {
-        if (!listName.trim()) return alert("Please enter a list name");
+        // ✅ Trim and validate list name
+        const trimmedListName = listName.trim();
+        if (!trimmedListName) return alert("Please enter a list name");
+        if (trimmedListName.length > 30) return alert("List name cannot exceed 30 characters");
 
+        // ✅ Calculate total price
         const totalPrice = shoppingList.reduce(
             (sum, item) => sum + (parseFloat(item.discounted_price || item.original_price) * item.quantity),
             0
         );
 
+        // ✅ Prepare payload
         const payload = {
-            list_name: listName,
-            total_price: parseFloat(totalPrice.toFixed(2)), // match float type
+            list_name: trimmedListName,
+            total_price: parseFloat(totalPrice.toFixed(2)),
             items: shoppingList.map(item => ({
                 name: item.name,
                 quantity: item.quantity,
@@ -256,15 +261,15 @@ function ProductSearch() {
                 body: JSON.stringify(payload),
             });
 
-            // Assuming your makeRequest resolves JSON if status is ok
-            alert(`List saved successfully! ID: ${data.list_id}`);
-            setListName(""); // clear input
+            // ✅ On success: alert and reset all inputs
+            alert("List saved successfully!");
+            setListName("");          // reset list name
+            setShoppingList([]);      // reset shopping list items
         } catch (err) {
             console.error("Error saving shopping list:", err);
             alert("Failed to save the list. Please try again.");
         }
     };
-
 
 
 

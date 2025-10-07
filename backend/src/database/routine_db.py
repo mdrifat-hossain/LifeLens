@@ -340,27 +340,48 @@ async def toggle_routine(cursor, conn, user_id, routine_id):
         if not row:
             raise HTTPException(status_code=404, detail="Routine not found")
 
-        # today = datetime.date.today()
         today = date.today()
         last_completed = row.get("last_completed_date")
+        current_state = row.get("is_completed_today", False)
 
-        # Reset is_completed_today if last_completed is not today
+        # Reset daily completion if the stored date is not today
         if last_completed != today:
             current_state = False
-        else:
-            current_state = row.get("is_completed_today", False)
 
-        new_state = not current_state  # toggle
+        # Toggle completion state
+        new_state = not current_state
+        print(
+            f"✅ Toggling routine {routine_id} for user {user_id} from {current_state} to {new_state}"
+        )
 
-        # Update is_completed_today and last_completed_date if toggled to True
-        last_completed_update = today if new_state else last_completed
-        query = "UPDATE weekly_routines SET is_completed_today=%s, last_completed_date=%s WHERE user_id=%s AND routine_id=%s"
-        await cursor.execute(query, (new_state, last_completed_update, user_id, routine_id))
-        await conn.commit()
-
-        # Update completed_days only when toggled to True
+        # If toggled to True → mark completed for today and increment
         if new_state:
+            query = """
+                UPDATE weekly_routines
+                SET is_completed_today=%s, last_completed_date=%s
+                WHERE user_id=%s AND routine_id=%s
+            """
+            await cursor.execute(query, (True, today, user_id, routine_id))
+            await conn.commit()
+
+            # Increment completed_days
             await update_completed_days(cursor, conn, user_id, routine_id, increment=1)
+
+        # If toggled to False → unmark completion and decrement (only if last_completed_date == today)
+        else:
+            query = """
+                UPDATE weekly_routines
+                SET is_completed_today=%s, last_completed_date=%s
+                WHERE user_id=%s AND routine_id=%s
+            """
+            await cursor.execute(query, (False, None, user_id, routine_id))
+            await conn.commit()
+
+            # Decrement only if previously completed today
+            if last_completed == today:
+                await update_completed_days(
+                    cursor, conn, user_id, routine_id, increment=-1
+                )
 
         return new_state
 
@@ -389,7 +410,7 @@ async def get_today_progress(cursor, user_id, today_short):
         total = row.get("total", 0)
         completed = row.get("completed", 0)
         progress = (completed / total * 100) if total > 0 else 0
-        
+
         # print(f"✅ Today's progress: {completed}/{total} routines completed ({progress:.2f}%)")
 
         return {
@@ -402,4 +423,3 @@ async def get_today_progress(cursor, user_id, today_short):
         raise HTTPException(
             status_code=500, detail=f"DB error in get_today_progress: {e}"
         )
-

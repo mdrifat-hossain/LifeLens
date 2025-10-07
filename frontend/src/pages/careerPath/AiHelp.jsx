@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from 'react';
 import { useApi } from "../../utils/api";
 import { RiRobot3Fill } from "react-icons/ri";
+import { infinity } from 'ldrs'
+import { FaUserCircle } from "react-icons/fa";
 
 
 function AiHelp() {
@@ -33,29 +35,28 @@ function AiHelp() {
         {
             role: "assistant",
             content:
-                "Hi there! I'm here to help you create a personalized learning path. What career are you interested in pursuing?",
+                "Hi there! I'm here to help you create a personalized learning path. How can I help you?",
         },
     ]);
+
     const [input, setInput] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const messagesEndRef = useRef(null); // for auto-scroll
 
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        // Add user message locally
-        const newMessages = [
-            ...messages,
-            { role: "user", content: input.trim() },
-        ];
+        const newMessages = [...messages, { role: "user", content: input.trim() }];
         setMessages(newMessages);
         setInput("");
+        setIsLoading(true); // start loader
 
         try {
-            // Send conversation to backend
             const res = await makeRequest("career-ai-help", {
                 method: "POST",
                 body: JSON.stringify({
                     path_id: pathId,
-                    conversation: newMessages, // Send full conversation history
+                    conversation: newMessages,
                 }),
             });
 
@@ -64,17 +65,23 @@ function AiHelp() {
                     ...prev,
                     {
                         role: "assistant",
-                        content: res.ai_reply.raw_text, // fallback text
-                        structured: res.ai_reply       // keep parsed data
+                        content: res.ai_reply.raw_text,
+                        structured: res.ai_reply,
                     },
                 ]);
             }
-
-
         } catch (err) {
             console.error("❌ Error sending message:", err);
+        } finally {
+            setIsLoading(false); // stop loader after response or error
         }
     };
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, isLoading]);
+
+
 
     const handleKeyDown = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -186,16 +193,20 @@ function AiHelp() {
                                                 {/* Weekly Routine */}
                                                 <div>
                                                     <h3 className="font-semibold text-lg">Weekly Routine</h3>
-                                                    <ul className="mt-2 space-y-1">
-                                                        {msg.structured.routines.map((routine, i) => (
-                                                            <li key={i} className="flex justify-between">
-                                                                <span className="font-medium">{routine.day_of_week}:</span>
-                                                                <span>
-                                                                    {routine.start_time} - {routine.end_time}
-                                                                </span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
+                                                    {msg.structured.routines && msg.structured.routines.length > 0 ? (
+                                                        <ul className="mt-2 space-y-1">
+                                                            {msg.structured.routines.map((routine, i) => (
+                                                                <li key={i} className="flex justify-between">
+                                                                    <span className="font-medium">{routine.day_of_week}:</span>
+                                                                    <span>{routine.start_time} - {routine.end_time}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    ) : (
+                                                        <p className="text-gray-500 italic">
+                                                            You already have a weekly routine for this path.
+                                                        </p>
+                                                    )}
                                                 </div>
 
                                                 {/* Accept Button */}
@@ -215,10 +226,33 @@ function AiHelp() {
                                     </div>
 
                                     {msg.role === "user" && (
-                                        <div className="h-10 w-10 shrink-0 rounded-full bg-gray-400" />
+                                        // <div className="h-10 w-10 shrink-0 rounded-full bg-gray-400" />
+                                        <FaUserCircle className="h-10 w-10 shrink-0 rounded-full text-gray-400" />
                                     )}
                                 </div>
                             ))}
+                            {/* Loader */}
+                            {isLoading && (
+                                <div className="flex items-start gap-4">
+                                    <div className="h-10 w-10 rounded-full bg-gray-400 flex items-center justify-center">
+                                        <RiRobot3Fill className="h-6 w-6 text-black" />
+                                    </div>
+                                    <div className="p-4 max-w-2xl rounded-2xl bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
+                                        <l-infinity
+                                            size="35"
+                                            stroke="3"
+                                            stroke-length="0.15"
+                                            bg-opacity="0.1"
+                                            speed="1.3"
+                                            class="text-gray-800 dark:text-white"
+                                            color="currentColor"
+                                        ></l-infinity>
+                                    </div>
+
+                                </div>
+                            )}
+
+                            <div ref={messagesEndRef}></div>
 
                         </div>
                     </div>

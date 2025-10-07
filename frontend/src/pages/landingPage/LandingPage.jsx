@@ -11,6 +11,7 @@ import { IoTimerSharp } from "react-icons/io5";
 import trackerIcon from '../../assets/tracker-icon.png';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { motion, AnimatePresence } from "framer-motion";
+import bg_animation from '../../assets/bg_animation.mp4';
 
 
 const faqs = [
@@ -113,9 +114,37 @@ export default function LandingPage() {
         return () => clearInterval(interval);
     }, []);
 
+    useEffect(() => {
+        const video = document.getElementById("bgVideo");
+        if (video) video.playbackRate = 0.15; // Slow down to 0.25x speed
+    }, []);
+
     return (
-        <body class="bg-emerald-50 text-text-dark font-display">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <body class="bg-emerald-50 text-text-dark font-display relative overflow-x-hidden">
+            {/* Background Video Layer */}
+            {/* <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10">
+                <video
+                    id="bgVideo"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="w-full h-full object-cover"
+                    style={{
+                        opacity: 0.25, 
+                        filter: "brightness(0.6) contrast(0.8) saturate(0.6) blur(1px)",
+                        transform: "scale(1.05)",
+                        mixBlendMode: "overlay",
+                    }}
+                >
+                    <source src={bg_animation} type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
+
+                <div className="absolute inset-0 bg-emerald-50/50"></div>
+            </div> */}
+
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 z-20">
                 <header
                     className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled
                         ? "bg-white/50 backdrop-blur-md shadow-md"

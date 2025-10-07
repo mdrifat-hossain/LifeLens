@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 import json
+import re
 from .redis_db.redis_cache_clear import clear_user_cache
 from .redis_db import redis_db_services
 
@@ -260,20 +261,342 @@ async def get_health_alert(cursor, user_id: str):
 
 
 ##Rifat Edits
-async def store_grocery_list(cursor, conn, user_id, list_name, total_price, items):
+# async def store_grocery_list(cursor, conn, user_id, list_name, total_price, items):
+#     try:
+#         # Insert grocery list
+#         query = "INSERT INTO grocery_list (user_id, list_name, total_price) VALUES (%s, %s, %s)"
+#         await cursor.execute(query, (user_id, list_name, total_price))
+#         list_id = cursor.lastrowid
+
+#         # Insert grocery items
+#         item_query = "INSERT INTO grocery_items (list_id, name, quantity, price) VALUES (%s, %s, %s, %s)"
+#         for item in items:
+#             await cursor.execute(item_query, (list_id, item.name, item.quantity, item.price))
+
+#         await conn.commit()
+#         return list_id
+#     except Exception as e:
+#         await conn.rollback()
+#         raise e
+    
+async def get_available_grocery_ai(cursor, user_id: str):
+    print("🤖")
+    await cursor.execute("SELECT grocery_name,available_amount FROM `available_groceries` WHERE user_id=%s", (user_id,))
+    return await cursor.fetchall()
+
+
+async def update_or_insert_available_grocery(
+    cursor, conn, user_id, grocery_name,
+    item_quantity, unit_quantity_number, unit_unit
+):
+    """
+    ✅ If grocery exists → update available_amount.
+    ✅ If not → insert new grocery.
+    Example stored format: "5 kg", "12 pcs", "2 liters"
+    """
     try:
-        # Insert grocery list
-        query = "INSERT INTO grocery_list (user_id, list_name, total_price) VALUES (%s, %s, %s)"
-        await cursor.execute(query, (user_id, list_name, total_price))
-        list_id = cursor.lastrowid
+        added_amount = item_quantity * unit_quantity_number  # e.g. 2 × 1.5 = 3 kg
 
-        # Insert grocery items
-        item_query = "INSERT INTO grocery_items (list_id, name, quantity, price) VALUES (%s, %s, %s, %s)"
-        for item in items:
-            await cursor.execute(item_query, (list_id, item.name, item.quantity, item.price))
+        # 🔍 Check if grocery already exists for the user
+        await cursor.execute("""
+            SELECT available_amount 
+            FROM available_groceries 
+            WHERE user_id = %s AND grocery_name = %s
+        """, (user_id, grocery_name))
+        row = await cursor.fetchone()
 
-        await conn.commit()
-        return list_id
+        if row:
+            existing_text = row["available_amount"]
+            match = re.search(r"([\d\.]+)", existing_text)
+            existing_amount = float(match.group(1)) if match else 0.0
+
+            # Try to extract the existing unit
+            unit_match = re.search(r"[a-zA-Z]+", existing_text)
+            existing_unit = unit_match.group().strip() if unit_match else unit_unit
+
+            # ⚖️ Handle possible unit mismatch gracefully
+            if existing_unit.lower() != unit_unit.lower():
+                print(f"⚠️ Unit mismatch for {grocery_name}: existing={existing_unit}, new={unit_unit}")
+                # Optionally, store both units as separate rows
+                new_grocery_name = f"{grocery_name} ({unit_unit})"
+                await cursor.execute("""
+                    INSERT INTO available_groceries (user_id, grocery_name, available_amount)
+                    VALUES (%s, %s, %s)
+                """, (user_id, new_grocery_name, f"{added_amount} {unit_unit}"))
+                await conn.commit()
+                print(f"🆕 Added new unit variant {new_grocery_name}: {added_amount} {unit_unit}")
+                return
+
+            new_total = existing_amount + added_amount
+            new_text = f"{new_total} {unit_unit}"
+
+            # ✅ Update existing grocery
+            await cursor.execute("""
+                UPDATE available_groceries
+                SET available_amount = %s
+                WHERE user_id = %s AND grocery_name = %s
+            """, (new_text, user_id, grocery_name))
+            await conn.commit()
+
+            print(f"🔄 Updated {grocery_name}: {existing_text} → {new_text}")
+
+        else:
+            # 🆕 Insert new grocery (first time)
+            new_text = f"{added_amount} {unit_unit}"
+            await cursor.execute("""
+                INSERT INTO available_groceries (user_id, grocery_name, available_amount)
+                VALUES (%s, %s, %s)
+            """, (user_id, grocery_name, new_text))
+            await conn.commit()
+
+            print(f"🆕 Added new grocery: {grocery_name} = {new_text}")
+
     except Exception as e:
         await conn.rollback()
+        print(f"❌ Error updating or inserting grocery '{grocery_name}': {e}")
+        raise e
+
+# ✅ Store grocery list and its items
+async def store_grocery_list(cursor, conn, user_id, list_name, total_price, items):
+    """
+    Stores a grocery list and its related items into the database.
+    - Inserts one row into grocery_list
+    - Inserts multiple rows into grocery_list_items
+    """
+    try:
+        if not items or len(items) == 0:
+            raise ValueError("No grocery items provided.")
+
+        # 1️⃣ Insert grocery list
+        await cursor.execute("""
+            INSERT INTO grocery_list (user_id, list_name, total_price, created_at)
+            VALUES (%s, %s, %s, NOW())
+        """, (user_id, list_name, total_price))
+        await conn.commit()
+
+        # Get inserted list_id
+        list_id = cursor.lastrowid
+        print(f"🆕 Grocery list created with ID: {list_id}")
+
+        # 2️⃣ Insert each item
+        for item in items:
+            full_name = item.name.strip()
+            quantity = item.quantity
+            price_per_unit = item.price
+            total_item_price = quantity * price_per_unit
+            category = "Uncategorized"
+
+            await cursor.execute("""
+                INSERT INTO grocery_list_items 
+                (list_id, grocery_name, quantity, price_per_unit, total_price, category)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (list_id, full_name, quantity, price_per_unit, total_item_price, category))
+        
+        await conn.commit()
+        print(f"✅ Stored {len(items)} items under grocery list ID {list_id}")
+
+        return list_id
+
+    except Exception as e:
+        await conn.rollback()
+        print(f"❌ Error storing grocery list: {e}")
+        raise e
+
+
+async def get_grocery_dashboard_stats(cursor, user_id):
+    """
+    Returns:
+    {
+        "total_lists": int,
+        "this_month_total": float,
+        "avg_per_trip": float,
+        "success_goal": int
+    }
+    """
+    try:
+        # Total lists
+        await cursor.execute(
+            "SELECT COUNT(*) AS total_lists FROM available_groceries WHERE user_id=%s",
+            (user_id,)
+        )
+        total_lists = (await cursor.fetchone())["total_lists"]
+        
+        await cursor.execute(
+            "SELECT COUNT(*) AS total_lists FROM grocery_list WHERE user_id=%s",
+            (user_id,)
+        )
+        total_title_lists = (await cursor.fetchone())["total_lists"]
+
+        # This month total price
+        await cursor.execute("""
+            SELECT COALESCE(SUM(total_price), 0) AS this_month_total
+            FROM grocery_list
+            WHERE user_id=%s AND MONTH(created_at)=MONTH(CURDATE()) AND YEAR(created_at)=YEAR(CURDATE())
+        """, (user_id,))
+        this_month_total = (await cursor.fetchone())["this_month_total"]
+
+        # Average per trip
+        avg_per_trip = this_month_total / total_title_lists  if total_title_lists  > 0 else 0
+
+        # Success goal: percentage of lists with total_price > 0
+        await cursor.execute("""
+            SELECT COALESCE(SUM(total_price), 0) AS food_expense
+            FROM grocery_list
+            WHERE user_id=%s
+              AND MONTH(created_at)=MONTH(CURDATE())
+              AND YEAR(created_at)=YEAR(CURDATE())
+        """, (user_id,))
+        food_expense = (await cursor.fetchone())["food_expense"]
+                # Food budget limit
+        await cursor.execute("""
+            SELECT limit_amount
+            FROM budgets
+            WHERE user_id=%s AND category_id=1
+        """, (user_id,))
+        row = await cursor.fetchone()
+        food_budget = row["limit_amount"] if row else 0
+
+        # Calculate percentage
+        percentage = (food_expense / food_budget * 100) if food_budget > 0 else 0
+
+        return {
+            "total_lists": total_lists,
+            "this_month_total": this_month_total,
+            "avg_per_trip": avg_per_trip,
+            "food_expense": percentage
+        }
+
+    except Exception as e:
+        print(f"❌ Error fetching dashboard stats: {e}")
+        raise e
+
+async def get_available_groceries(cursor, user_id):
+    query = """
+        SELECT ID, grocery_name, available_amount
+        FROM available_groceries
+        WHERE user_id=%s
+    """
+    await cursor.execute(query, (user_id,))
+    return await cursor.fetchall()
+
+
+async def update_available_groceries(cursor, conn, user_id, groceries):
+    for item in groceries:
+        ID = item.get("ID")
+        name = item.get("grocery_name")
+        amount = item.get("available_amount")
+
+        # Check if record exists
+        await cursor.execute("""
+            SELECT COUNT(*) AS count 
+            FROM available_groceries 
+            WHERE user_id=%s AND ID=%s
+        """, (user_id, ID))
+        row = await cursor.fetchone()
+        exists = row["count"] if row else 0
+
+        if exists:
+            await cursor.execute("""
+                UPDATE available_groceries
+                SET grocery_name=%s, available_amount=%s
+                WHERE user_id=%s AND ID=%s
+            """, (name, amount, user_id, ID))
+        else:
+            await cursor.execute("""
+                INSERT INTO available_groceries (user_id, grocery_name, available_amount)
+                VALUES (%s, %s, %s)
+            """, (user_id, name, amount))
+
+    await conn.commit()
+    return True
+
+async def delete_available_grocery(cursor, conn, user_id, grocery_id):
+    try:
+        await cursor.execute("""
+            DELETE FROM available_groceries
+            WHERE user_id = %s AND ID = %s
+        """, (user_id, grocery_id))
+        await conn.commit()
+        return True
+    except Exception as e:
+        await conn.rollback()
+        print(f"❌ Error deleting grocery: {e}")
+        raise e
+    
+# db.py
+async def fetch_grocery_lists(cursor, conn, user_id: int, filter: str = "all"):
+    try:
+        from datetime import datetime, timedelta
+
+        today = datetime.today()
+        filter_query = ""
+
+        if filter == "this_month":
+            filter_query = f"AND MONTH(gl.created_at) = {today.month} AND YEAR(gl.created_at) = {today.year}"
+        elif filter == "last_month":
+            last_month = today.replace(day=1) - timedelta(days=1)
+            filter_query = f"AND MONTH(gl.created_at) = {last_month.month} AND YEAR(gl.created_at) = {last_month.year}"
+
+        sql = f"""
+            SELECT gl.list_id,
+                   gl.list_name,
+                   gl.created_at,
+                   IFNULL(SUM(gli.quantity * gli.price_per_unit), 0) AS total_price,
+                   COUNT(gli.item_id) AS items_count,
+                   IFNULL(MAX(b.limit_amount) - SUM(gli.quantity * gli.price_per_unit), 0) AS money_saved
+            FROM grocery_list gl
+            LEFT JOIN grocery_list_items gli ON gl.list_id = gli.list_id
+            LEFT JOIN budgets b ON b.user_id = gl.user_id AND b.category_id = 1
+            WHERE gl.user_id = %s
+            {filter_query}
+            GROUP BY gl.list_id
+            ORDER BY gl.created_at DESC
+        """
+        await cursor.execute(sql, (user_id,))
+        result = await cursor.fetchall()
+        return result if result else []
+
+    except Exception as e:
+        print(f"❌ Error fetching grocery lists: {e}")
+        raise e
+
+async def fetch_grocery_list_details(cursor, conn, user_id: int, list_id: int):
+    """
+    Fetches a specific grocery list with its items.
+    """
+    try:
+        await cursor.execute("""
+            SELECT gl.list_id, gl.list_name, gl.total_price, gl.created_at,
+                   gli.item_id, gli.grocery_name, gli.quantity, gli.price_per_unit, gli.total_price AS item_total
+            FROM grocery_list gl
+            LEFT JOIN grocery_list_items gli ON gl.list_id = gli.list_id
+            WHERE gl.user_id = %s AND gl.list_id = %s
+        """, (user_id, list_id))
+
+        rows = await cursor.fetchall()
+        if not rows:
+            return None
+
+        # Combine data into structured object
+        first = rows[0]
+        list_data = {
+            "list_id": first["list_id"],
+            "list_name": first["list_name"],
+            "total_price": first["total_price"],
+            "created_at": first["created_at"],
+            "items": [
+                {
+                    "item_id": row["item_id"],
+                    "grocery_name": row["grocery_name"],
+                    "quantity": row["quantity"],
+                    "price_per_unit": row["price_per_unit"],
+                    "item_total": row["item_total"],
+                }
+                for row in rows if row["item_id"] is not None
+            ],
+        }
+        return list_data
+
+    except Exception as e:
+        print(f"❌ Error fetching grocery list details: {e}")
         raise e

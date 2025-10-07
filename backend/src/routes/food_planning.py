@@ -11,6 +11,8 @@ from ..ai_generator.foodPlanning.mealGenerator.schema import GroceryList
 import time, json
 from ..database.redis_db import redis_db_services
 from . import throttling
+from ..ai_generator.groceryitem_store_ai.utils import ai_chat_manager
+import re
 
 router = APIRouter()
 
@@ -274,12 +276,220 @@ async def get_health_alert(request: Request = None, db_dep=Depends(get_db)):
 async def add_grocery_list(input: GroceryListInput, request_obj: Request, db_dep=Depends(get_db)):
     try:
         cursor, conn = db_dep
-        # get logged-in user id
+
+        # ✅ Get logged-in user
         user_details = authenticate_and_get_user_details(request_obj)
         user_id = user_details.get("user_id")
 
-        list_id = await food_planning_db.store_grocery_list(cursor, conn, user_id, input.list_name, input.total_price, input.items)
-        return {"status": "success", "list_id": list_id}
+        # ✅ Get user's current grocery stock
+        users_available_grocery = await food_planning_db.get_available_grocery_ai(cursor, user_id)
+        print("✅ users_available_grocery:", users_available_grocery)
+        print("✅ input items:", input)
+        
+                # ✅ Validate input
+        if not input.items or len(input.items) == 0:
+            raise HTTPException(status_code=400, detail="No grocery items provided.")
+        # print("✅ input items count:", input)
+        # ✅ Store grocery list and its items
+        await food_planning_db.store_grocery_list(
+            cursor=cursor,
+            conn=conn,
+            user_id=user_id,
+            list_name=input.list_name,
+            total_price=input.total_price,
+            items=input.items
+        )
+
+        # ✅ Prepare grocery item names for AI comparison
+        items = [
+            GroceryItem(name=item.name, quantity=item.quantity, price=item.price)
+            for item in input.items
+        ]
+        grocery_names = []
+
+        # ✅ Extract details from each grocery item
+        parsed_items = []  # will hold (product_name, unit_quantity_number, unit_unit, item_quantity)
+
+        for item in items:
+            full_name = item.name
+            parts = full_name.split(" - ", 1)
+            product_name = parts[0].strip()
+            unit_quantity_text = parts[1].strip() if len(parts) > 1 else ""
+
+            # Extract numeric unit quantity
+            match = re.search(r"\d+(\.\d+)?", unit_quantity_text)
+            unit_quantity_number = float(match.group()) if match else 1.0
+
+            # Extract unit (kg, pcs, liter, etc.)
+            unit_match = re.search(r"[a-zA-Z]+", unit_quantity_text)
+            unit_unit = unit_match.group().strip() if unit_match else "unit"
+
+            item_quantity = item.quantity
+            grocery_names.append(product_name)
+
+            parsed_items.append({
+                "product_name": product_name,
+                "unit_quantity_number": unit_quantity_number,
+                "unit_unit": unit_unit,
+                "item_quantity": item_quantity
+            })
+
+            print(f"🛒 Product: {product_name} | 🧮 {unit_quantity_number} {unit_unit} × {item_quantity}")
+
+        # ✅ Send to AI for comparison
+        domains = [
+            {"name": "users_available_grocery_item", "desc": users_available_grocery},
+            {"name": "new_grocery_item_name", "desc": grocery_names},  
+        ]
+        query = "Compare new grocery items with available groceries and tell which ones match or not."
+
+        print("✅ processing ai_chat_manager...")
+        ai_reply = await ai_chat_manager(domains=domains, query=query)
+        ai_text = ai_reply["ai_text"]
+        print("🤖 AI Response:\n", ai_text)
+
+        # ✅ Parse AI response
+        # Example: "Chinigura Rice Premium = Rice\nChicken Eggs (Layer) = Eggs\nMilk = no match"
+        # ✅ Parse AI response
+        mapping = {}
+        for line in ai_text.strip().split("\n"):
+            if "=" in line:
+                new_item, mapped_item = [x.strip() for x in line.split("=", 1)]
+                mapping[new_item] = mapped_item
+
+        print("🗺️ Parsed AI mapping:", mapping)
+
+        # ✅ Update or Insert each grocery item
+        for item in parsed_items:
+            name = item["product_name"]
+            unit_quantity_number = item["unit_quantity_number"]
+            unit_unit = item["unit_unit"]
+            item_quantity = item["item_quantity"]
+
+            # Get mapped/generic grocery name from AI (always a valid title now)
+            matched_name = mapping.get(name, name)  # fallback to itself if missing
+
+            print(f"🔄 Processing: {name} → {matched_name} | {unit_quantity_number} {unit_unit} × {item_quantity}")
+
+            # ✅ Update or insert grocery
+            await food_planning_db.update_or_insert_available_grocery(
+                cursor=cursor,
+                conn=conn,
+                user_id=user_id,
+                grocery_name=matched_name,
+                item_quantity=item_quantity,
+                unit_quantity_number=unit_quantity_number,
+                unit_unit=unit_unit
+            )
+
+        return {
+            "status": "success",
+            "message": "Grocery list processed and inventory updated successfully"
+        }
+
 
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error saving grocery list: {str(e)}")
+    
+@router.get("/grocery_dashboard_stats")
+async def get_grocery_dashboard_stats(request_obj: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+
+        # Get logged-in user
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details.get("user_id")
+
+        # Fetch dashboard stats from DB
+        stats = await food_planning_db.get_grocery_dashboard_stats(cursor, user_id)
+        return stats
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error fetching dashboard stats: {str(e)}")
+    
+@router.get("/available_groceries")
+async def get_available_groceries(request_obj: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details.get("user_id")
+
+        groceries = await food_planning_db.get_available_groceries(cursor, user_id)
+        return {"available_groceries": groceries}
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error fetching groceries: {str(e)}")
+
+
+@router.post("/update_available_groceries")
+async def update_available_groceries(input: dict, request_obj: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details.get("user_id")
+
+        groceries = input.get("groceries", [])
+        print("✅Updating groceries:", groceries)
+        await food_planning_db.update_available_groceries(cursor, conn, user_id, groceries)
+        return {"status": "success"}
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        await conn.rollback()
+        print(e)
+        raise HTTPException(status_code=500, detail="Failed to update groceries")
+    
+@router.delete("/delete_available_grocery/{grocery_id}")
+async def delete_available_grocery(grocery_id: int, request_obj: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details.get("user_id")
+
+        await food_planning_db.delete_available_grocery(cursor, conn, user_id, grocery_id)
+        return {"status": "success", "message": f"Grocery item {grocery_id} deleted"}
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error deleting grocery: {str(e)}")
+
+@router.get("/grocery-lists")
+async def get_grocery_lists(request_obj: Request, filter: str = "all", db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details["user_id"]
+        lists = await food_planning_db.fetch_grocery_lists(cursor, conn, user_id, filter)
+        return lists
+    except Exception as e:
+        import traceback
+        print("Error in get_grocery_lists:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/grocery-list/{list_id}")
+async def get_grocery_list_details(list_id: int, request_obj: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+
+        user_details = authenticate_and_get_user_details(request_obj)
+        user_id = user_details.get("user_id")
+
+        grocery_list = await food_planning_db.fetch_grocery_list_details(cursor, conn, user_id, list_id)
+
+        if not grocery_list:
+            raise HTTPException(status_code=404, detail="Grocery list not found")
+
+        return grocery_list
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error fetching grocery list details: {str(e)}")

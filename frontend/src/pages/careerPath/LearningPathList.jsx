@@ -371,13 +371,20 @@ export default function LearningPathList() {
     };
 
     const handleDelete = async (path_id) => {
+        const confirmDelete = window.confirm("Are you sure you want to delete this learning path?");
+        if (!confirmDelete) return;
+
         try {
+            console.log("Delete path:", path_id);
             await makeRequest(`delete-learning-path/${path_id}`, { method: "DELETE" });
             setPaths((prev) => prev.filter((i) => i.path_id !== path_id));
+            alert("Learning path deleted successfully!");
         } catch (err) {
             console.error("Error deleting path:", err);
+            alert("Failed to delete the learning path. Please try again.");
         }
     };
+
 
 
     // prevent body scroll when modal open

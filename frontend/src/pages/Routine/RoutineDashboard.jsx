@@ -178,7 +178,7 @@ function RoutineDashboard() {
         try {
             // Optimistic UI update
             setCompleted(prev => ({ ...prev, [routineId]: !prev[routineId] }));
-            // console.log("Toggling routine:", routineId);
+            console.log("Toggling routine:", routineId);
 
             // Make POST request with routine_id in body
             const res = await makeRequest("routines/toggle", {
