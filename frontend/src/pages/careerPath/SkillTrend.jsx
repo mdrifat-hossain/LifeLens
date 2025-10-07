@@ -11,6 +11,10 @@ import {
     Legend,
 } from "chart.js";
 import { Bar, Line } from "react-chartjs-2";
+import { useApi } from "../../utils/api";
+import { useAuth } from "@clerk/clerk-react";
+import { useTheme } from '../../layout/useTheme';
+import { useState, useEffect } from 'react';
 
 // Register chart components
 ChartJS.register(
@@ -24,31 +28,103 @@ ChartJS.register(
     Legend
 );
 
+
 function SkillTrend() {
+    const { makeRequest } = useApi();
+    const { userId } = useAuth();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const { darkMode } = useTheme();
+    const [industryData, setIndustryData] = useState(null);
+    // const [selectedIndustry, setSelectedIndustry] = useState("Software Engineer");
+    const [selectedIndustry, setSelectedIndustry] = useState(null);
+    const [news, setNews] = useState([]);
+    const [availableIndustries, setAvailableIndustries] = useState([]);
+
+    useEffect(() => {
+        industryTrends();
+    }, [userId]);
+
+    useEffect(() => {
+        if (selectedIndustry) {
+            fetchIndustryNews(selectedIndustry);
+        }
+    }, [selectedIndustry]);
+
+    const industryTrends = async () => {
+        if (!userId) return;
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const res = await makeRequest("get-industry-trends");
+            if (res.status === "success") {
+                console.log(res.result);
+                setIndustryData(res.result.career_insights);
+                // Extract available industries from the response
+                const industries = Object.keys(res.result.career_insights);
+                setAvailableIndustries(industries);
+                // Set the first industry as default if available
+                if (industries.length > 0 && !selectedIndustry) {
+                    setSelectedIndustry(industries[0]);
+                }
+            } else if (res.status === "empty") {
+                setIndustryData(null);
+                setAvailableIndustries([]);
+            } else {
+                setError("Failed to load industry trends.");
+            }
+        } catch (err) {
+            console.error("❌ Error fetching industry trends:", err.message);
+            setError("Permission denied or network error.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const fetchIndustryNews = async (careerField) => {
+        try {
+            // setIsLoading(true);
+            const res = await makeRequest(`news?career_field=${encodeURIComponent(careerField)}`);
+            if (res.news) {
+                setNews(res.news);
+            }
+        } catch (err) {
+            console.error("❌ Error fetching news:", err.message);
+            setError("Could not load news.");
+        } finally {
+            // setIsLoading(false);
+        }
+    };
+
+    // Get current industry data
+    const currentData = industryData?.[selectedIndustry];
+
     // Salary Chart data & options
-    const salaryData = {
-        labels: ["Entry Level", "Mid Level", "Senior Level", "Lead Level"],
+    const salaryData = currentData ? {
+        labels: currentData.salary_data.labels,
         datasets: [
             {
                 label: "Minimum",
-                data: [70, 90, 115, 175],
+                data: currentData.salary_data.datasets.find(d => d.label === "Minimum")?.data || [],
                 backgroundColor: "#F87171",
                 borderRadius: 8,
             },
             {
                 label: "Median",
-                data: [85, 115, 150, 220],
+                data: currentData.salary_data.datasets.find(d => d.label === "Median")?.data || [],
                 backgroundColor: "#60A5FA",
                 borderRadius: 8,
             },
             {
                 label: "Maximum",
-                data: [100, 140, 190, 290],
+                data: currentData.salary_data.datasets.find(d => d.label === "Maximum")?.data || [],
                 backgroundColor: "#4ADE80",
                 borderRadius: 8,
             },
         ],
-    };
+    } : null;
 
     const salaryOptions = {
         responsive: true,
@@ -76,29 +152,23 @@ function SkillTrend() {
     };
 
     // Seasonal Hiring Chart
-    const seasonalHiringData = {
-        labels: ["Q1", "Q2", "Q3", "Q4"],
+    const seasonalHiringData = currentData ? {
+        labels: currentData.seasonal_hiring_trends.labels,
         datasets: [
             {
-                label: "Software Engineering",
-                data: [500, 700, 650, 550],
+                label: currentData.seasonal_hiring_trends.datasets[0].label,
+                data: currentData.seasonal_hiring_trends.datasets[0].data,
                 borderColor: "#60A5FA",
                 backgroundColor: "#60A5FA",
                 tension: 0.4,
                 fill: false,
-            },
-            {
-                label: "Data Science",
-                data: [300, 450, 500, 350],
-                borderColor: "#4ADE80",
-                backgroundColor: "#4ADE80",
-                tension: 0.4,
-                fill: false,
-            },
+            }
         ],
-    };
+    } : null;
 
     const seasonalHiringOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: {
                 position: "bottom",
@@ -123,337 +193,346 @@ function SkillTrend() {
             },
         },
     };
+
+    const industryTrendGenerator = async () => {
+        try {
+            setIsLoading(true)
+            const res = await makeRequest("industry-trend-generator", { method: "POST" });
+            if (res.status === "success") {
+                console.log(res);
+            }
+        } catch (err) {
+            console.error("❌ Error fetching data:", err.message);
+        } finally {
+            setIsLoading(false)
+        }
+    };
+
+    if (isLoading) {
+        return (
+            // <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-lg p-8 flex items-center justify-center min-h-screen">
+            //     <div className="text-center">
+            //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            //         <p className="text-gray-600">Loading industry trends...</p>
+            //     </div>
+            // </div>
+            <div className="h-[calc(100vh-4rem)] inset-0 flex items-center justify-center bg-light-background dark:bg-dark-background bg-opacity-70 z-10 dark:text-dark-text">
+                <l-grid size="60" speed="1.5" color={darkMode ? "white" : "black"} ></l-grid>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="h-[calc(100vh-4rem)] max-w-7xl mx-auto bg-light-background dark:bg-dark-background rounded-lg shadow-lg p-8">
+                <div className="text-center text-red-600">
+                    <p>{error}</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!currentData) {
+        return (
+            <div className="flex flex-col items-center justify-center text-center px-6 h-screen">
+                <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center mb-4">
+                    <svg
+                        className="w-10 h-10 text-light-text dark:text-dark-text"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 4v16m8-8H4"
+                        />
+                    </svg>
+                </div>
+                <h2 className="text-xl font-bold text-[#111418] dark:text-dark-text mb-2">
+                    No Data available
+                </h2>
+                <p className="text-[#637488] dark:text-[#b4b4b4] mb-4">
+                    Click the button to generate Industry Trends.
+                </p>
+                <button
+                    onClick={industryTrendGenerator}
+                    disabled={isLoading}
+                    className={`px-6 py-2 rounded-lg cursor-pointer font-semibold bg-primary disabled:opacity-50 disabled:cursor-not-allowed text-light-text shadow hover:shadow-lg transition`}
+                >
+                    {isLoading ? "Generating..." : "Generate Meal Plan"}
+                </button>
+            </div>
+        );
+    }
+
     return (
-        <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-lg p-8">
-            <div class="mb-12">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Market Outlook Overview</h2>
-                    <div class="relative">
+        <div className="max-w-7xl mx-auto bg-light-background dark:bg-dark-background rounded-lg shadow-lg p-8">
+            {/* Market Outlook Overview */}
+            <div className="mb-12">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text">Market Outlook Overview</h2>
+                    <div className="relative">
                         <select
-                            class="appearance-none bg-white border border-gray-300 rounded-lg py-2 pl-3 pr-8 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option>Software Engineering</option>
+                            value={selectedIndustry}
+                            onChange={(e) => setSelectedIndustry(e.target.value)}
+                            className="appearance-none bg-light-background dark:bg-dark-background border border-accent rounded-lg py-2 pl-3 pr-8 text-gray-700 dark:text-dark-text leading-tight focus:outline-none"
+                        >
+                            {availableIndustries.map((industry) => (
+                                <option key={industry} value={industry}>
+                                    {industry}
+                                </option>
+                            ))}
                         </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                            <span class="material-icons text-sm">expand_more</span>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <span className="material-icons text-sm">expand_more</span>
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-green-50 rounded-lg p-6 flex flex-col justify-center">
-                        <div class="flex items-center text-green-600 mb-2">
-                            <span class="material-icons mr-2">trending_up</span>
-                            <span class="font-semibold">Industry Growth</span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-green-50 rounded-lg p-6 flex flex-col justify-center">
+                        <div className="flex items-center text-green-600 mb-2">
+                            <span className="material-icons mr-2">trending_up</span>
+                            <span className="font-semibold">Industry Growth</span>
                         </div>
-                        <p class="text-4xl font-bold text-green-700">+23.5%</p>
-                        <p class="text-sm text-gray-500 mt-1">Annual growth rate</p>
+                        <p className="text-4xl font-bold text-green-700">{currentData.industry_growth}</p>
+                        <p className="text-sm text-gray-500 mt-1">Annual growth rate</p>
                     </div>
-                    <div class="bg-blue-50 rounded-lg p-6 flex flex-col justify-center">
-                        <div class="flex items-center text-blue-600 mb-2">
-                            <span class="material-icons mr-2">work</span>
-                            <span class="font-semibold">Demand Level</span>
+                    <div className="bg-blue-50 rounded-lg p-6 flex flex-col justify-center">
+                        <div className="flex items-center text-blue-600 mb-2">
+                            <span className="material-icons mr-2">work</span>
+                            <span className="font-semibold">Demand Level</span>
                         </div>
-                        <p class="text-4xl font-bold text-blue-700">High</p>
-                        <p class="text-sm text-gray-500 mt-1">Market demand</p>
+                        <p className="text-4xl font-bold text-blue-700">{currentData.demand_level}</p>
+                        <p className="text-sm text-gray-500 mt-1">Market demand</p>
                     </div>
-                    <div class="bg-purple-50 rounded-lg p-6">
-                        <div class="flex items-center text-purple-600 mb-4">
-                            <span class="material-icons mr-2">code</span>
-                            <span class="font-semibold">Top Skills</span>
+                    <div className="bg-purple-50 rounded-lg p-6">
+                        <div className="flex items-center text-purple-600 mb-4">
+                            <span className="material-icons mr-2">code</span>
+                            <span className="font-semibold">Top Skills</span>
                         </div>
-                        <div class="flex space-x-2">
-                            <span
-                                class="bg-purple-100 text-purple-700 text-sm font-medium px-3 py-1 rounded-full">React</span>
-                            <span
-                                class="bg-purple-100 text-purple-700 text-sm font-medium px-3 py-1 rounded-full">Python</span>
-                            <span
-                                class="bg-purple-100 text-purple-700 text-sm font-medium px-3 py-1 rounded-full">AWS</span>
+                        <div className="flex flex-wrap gap-2">
+                            {currentData.top_skills.slice(0, 3).map((skill, index) => (
+                                <span
+                                    key={index}
+                                    className="bg-purple-100 text-purple-700 text-sm font-medium px-3 py-1 rounded-full"
+                                >
+                                    {skill}
+                                </span>
+                            ))}
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="border-t border-gray-200 pt-8 mb-12"></div>
-            <div class="mb-12">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Salary Insights</h2>
-                    <div class="flex space-x-4">
-                        <div class="relative">
-                            <select
-                                class="appearance-none bg-white border border-gray-300 rounded-lg py-2 pl-3 pr-8 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option>All Experience</option>
-                            </select>
-                            <div
-                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                <span class="material-icons text-sm">expand_more</span>
-                            </div>
-                        </div>
-                        <div class="relative">
-                            <select
-                                class="appearance-none bg-white border border-gray-300 rounded-lg py-2 pl-3 pr-8 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option>All Locations</option>
-                            </select>
-                            <div
-                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                <span class="material-icons text-sm">expand_more</span>
-                            </div>
-                        </div>
-                    </div>
+
+            <div className="border-t border-primary dark:border-accent pt-8 mb-12"></div>
+
+            {/* Salary Insights */}
+            <div className="mb-12">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text">Salary Insights</h2>
                 </div>
-                <div class="flex justify-end space-x-4 mb-4 text-sm text-gray-600">
-                    <div class="flex items-center"><span class="h-2 w-2 bg-red-400 rounded-full mr-2"></span>Minimum</div>
-                    <div class="flex items-center"><span class="h-2 w-2 bg-blue-400 rounded-full mr-2"></span>Median</div>
-                    <div class="flex items-center"><span class="h-2 w-2 bg-green-400 rounded-full mr-2"></span>Maximum</div>
+                <div className="flex justify-end space-x-4 mb-4 text-sm text-gray-600 dark:text-dark-text/50">
+                    <div className="flex items-center"><span className="h-2 w-2 bg-red-400 rounded-full mr-2"></span>Minimum</div>
+                    <div className="flex items-center"><span className="h-2 w-2 bg-blue-400 rounded-full mr-2"></span>Median</div>
+                    <div className="flex items-center"><span className="h-2 w-2 bg-green-400 rounded-full mr-2"></span>Maximum</div>
                 </div>
                 <div className="h-80">
-                    <Bar data={salaryData} options={salaryOptions} />
+                    {salaryData && <Bar data={salaryData} options={salaryOptions} />}
                 </div>
             </div>
-            <div class="border-t border-gray-200 pt-8 mb-12"></div>
-            <div class="mb-12">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Company Hiring Trends</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            <div className="border-t border-primary dark:border-accent pt-8 mb-12"></div>
+
+            {/* Company Hiring Trends */}
+            <div className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text mb-6">Company Hiring Trends</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                        <ul class="space-y-4">
-                            <li class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div class="flex items-center">
-                                    <div
-                                        class="bg-blue-600 h-10 w-10 flex items-center justify-center rounded-md text-white font-bold text-xl mr-4">
-                                        G</div>
-                                    <div>
-                                        <p class="font-semibold text-gray-800">Company G</p>
-                                        <p class="text-sm text-gray-500">156 open positions</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-green-600 font-semibold">+12%</p>
-                                    <p class="text-sm text-gray-500">vs last month</p>
-                                </div>
-                            </li>
-                            <li class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div class="flex items-center">
-                                    <img alt="Company A logo" class="h-10 w-10 mr-4"
-                                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDC8lptNv3bVeAvC47qSe4znpA6bVYFaeE953OXbrbcYRsihR7JsW7Rkzdby5yITvCnFY9qJL4YgTUwm096oT-f6fSpoywHxJ5RuorYQdyeTrrhyE9BOQQQ2sh2AYGHOutML7mQpd4J-NXDcMwOMCiSsHFtZ5DU2Gy46Oh6wZH-aHbUkbRZv81iZXcp0ZSaZKYEODvcwriUXTsTg9fjATOfdO0xCbYE8ikZZfM0I2vXz4qEAvaKCHWWborpnZHfGlfccXnizT1i8G4" />
-                                    <div>
-                                        <p class="font-semibold text-gray-800">Company A</p>
-                                        <p class="text-sm text-gray-500">89 open positions</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-green-600 font-semibold">+8%</p>
-                                    <p class="text-sm text-gray-500">vs last month</p>
-                                </div>
-                            </li>
-                            <li class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div class="flex items-center">
-                                    <img alt="Company M logo" class="h-10 w-10 mr-4"
-                                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwdY4718MfLTJIBZLjGXFQUFhebeDl9YNLovDy-ZFfaKHlxNq_K3WX3zIjNdRtlnQ_EDWgRclBkYSsU4t8FT8ZhrLCOTnYNPgWDmzGqK8kFBlfuT-H0lK6WpN46bH9PtvPOOw6z80ITgMY1JqgCDpL0-qDTqSrd2HNmUHXVt4GyjqZyJZA_Xo_-WSxEC5PcIg7_YFxNzmXH3GkM_ShLOrzv3h685L8HjQRbppHXkZSE6iVJodQFQt5UST8a5yJst58bJAw6O_wwJA" />
-                                    <div>
-                                        <p class="font-semibold text-gray-800">Company M</p>
-                                        <p class="text-sm text-gray-500">67 open positions</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-red-600 font-semibold">-3%</p>
-                                    <p class="text-sm text-gray-500">vs last month</p>
-                                </div>
-                            </li>
+                        <ul className="space-y-4">
+                            {currentData.company_hiring_trends.map((company, index) => {
+                                const isPositive = company.hiring_rate.startsWith('+');
+                                return (
+                                    <li key={index} className="flex items-center justify-between p-4 bg-light-background dark:bg-dark-background border border-accent/70 rounded-lg">
+                                        <div className="flex items-center">
+                                            <div className="bg-blue-600 h-10 w-10 flex items-center justify-center rounded-md text-white font-bold text-xl mr-4">
+                                                {company.company.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-light-text dark:text-dark-text">{company.company}</p>
+                                                <p className="text-sm text-gray-500">Open positions</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                                                {company.hiring_rate}
+                                            </p>
+                                            <p className="text-sm text-gray-500">vs last month</p>
+                                        </div>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     </div>
                     <div>
-                        <p className="text-center font-semibold text-gray-700 mb-2">
+                        <p className="text-center font-semibold text-gray-700 dark:text-dark-text/50 mb-2">
                             Seasonal Hiring Trends
                         </p>
-                        <Line data={seasonalHiringData} options={seasonalHiringOptions} />
+                        <div className="h-64">
+                            {seasonalHiringData && <Line data={seasonalHiringData} options={seasonalHiringOptions} />}
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="border-t border-gray-200 pt-8"></div>
+
+            <div className="border-t border-primary dark:border-accent pt-8"></div>
+
+            {/* Emerging Trends & Future Skills */}
             <div>
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Emerging Trends &amp; Future Skills</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-green-50 border border-green-200 p-4 rounded-xl">
-                        <div class="flex items-center mb-2">
-                            <span class="material-icons text-green-600 mr-2">smart_toy</span>
-                            <h4 class="font-semibold text-gray-800">AI Agents in Finance</h4>
-                        </div>
-                        <p class="text-sm text-gray-600 mb-4">Autonomous financial decision-making systems</p>
-                        <div class="flex justify-between items-center text-sm mb-2">
-                            <span class="text-gray-500">Time to Maturity: 1-2 years</span>
-                            <span class="font-bold text-green-600">+67%</span>
-                        </div>
-                        <span
-                            class="inline-block bg-green-200 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">High
-                            Confidence</span>
-                    </div>
-                    <div class="bg-purple-50 border border-purple-200 p-4 rounded-xl">
-                        <div class="flex items-center mb-2">
-                            <span class="material-icons text-purple-600 mr-2">lock</span>
-                            <h4 class="font-semibold text-gray-800">Quantum-Safe Encryption</h4>
-                        </div>
-                        <p class="text-sm text-gray-600 mb-4">Post-quantum cryptographic protocols</p>
-                        <div class="flex justify-between items-center text-sm mb-2">
-                            <span class="text-gray-500">Time to Maturity: 2-3 years</span>
-                            <span class="font-bold text-purple-600">+45%</span>
-                        </div>
-                        <span
-                            class="inline-block bg-purple-200 text-purple-800 text-xs font-semibold px-2 py-1 rounded-full">Medium
-                            Confidence</span>
-                    </div>
-                    <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl">
-                        <div class="flex items-center mb-2">
-                            <span class="material-icons text-blue-600 mr-2">memory</span>
-                            <h4 class="font-semibold text-gray-800">Edge AI Computing</h4>
-                        </div>
-                        <p class="text-sm text-gray-600 mb-4">AI processing at network edges</p>
-                        <div class="flex justify-between items-center text-sm mb-2">
-                            <span class="text-gray-500">Time to Maturity: 1 year</span>
-                            <span class="font-bold text-blue-600">+52%</span>
-                        </div>
-                        <span
-                            class="inline-block bg-blue-200 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">High
-                            Confidence</span>
-                    </div>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text mb-6">Emerging Trends & Future Skills</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    {currentData.emerging_trends.map((trend, index) => {
+                        const colors = [
+                            { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-600', badge: 'bg-green-200 text-green-800' },
+                            { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-600', badge: 'bg-purple-200 text-purple-800' },
+                            { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600', badge: 'bg-blue-200 text-blue-800' }
+                        ];
+                        const color = colors[index % colors.length];
+
+                        return (
+                            <div key={index} className={`${color.bg} border ${color.border} p-4 rounded-xl`}>
+                                <div className="flex items-center mb-2">
+                                    <span className={`material-icons ${color.text} mr-2`}>smart_toy</span>
+                                    <h4 className="font-semibold text-gray-800">{trend.name}</h4>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-4">{trend.description}</p>
+                                <div className="flex justify-between items-center text-sm mb-2">
+                                    <span className="text-gray-500">Time to Maturity: {trend.time_to_maturity}</span>
+                                    <span className={`font-bold ${color.text}`}>{trend.growth}</span>
+                                </div>
+                                <span className={`inline-block ${color.badge} text-xs font-semibold px-2 py-1 rounded-full`}>
+                                    {trend.confidence} Confidence
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    {/* Future-Proof Skills */}
                     <div>
-                        <h3 class="flex items-center font-semibold text-gray-700 mb-4">
-                            <span class="material-icons text-green-500 mr-2">trending_up</span>
+                        <h3 className="flex items-center font-semibold text-gray-700 dark:text-dark-text mb-4">
+                            <span className="material-icons text-green-500 mr-2">trending_up</span>
                             Future-Proof Skills (3-5 years)
                         </h3>
-                        <div class="space-y-3">
-                            <div
-                                class="bg-green-50 border border-green-200 p-4 rounded-lg flex items-center justify-between">
-                                <div>
-                                    <div class="flex items-center mb-1">
-                                        <span
-                                            class="bg-green-200 font-semibold text-green-800 px-2 py-1 rounded text-xs font-medium mr-2">AI/ML</span>
-                                        <span class="font-medium">LangChain</span>
+                        <div className="space-y-3">
+                            {currentData.future_proof_skills.map((skill, index) => (
+                                <div key={index} className="bg-green-50 border border-green-200 p-4 rounded-lg flex items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center mb-1">
+                                            <span className="bg-green-200 text-green-800 px-2 py-1 rounded text-xs font-medium mr-2">
+                                                {skill.category}
+                                            </span>
+                                            <span className="font-medium">{skill.skill}</span>
+                                        </div>
                                     </div>
-                                    <p class="text-sm text-gray-600">Certification: LangChain Professional</p>
+                                    <span className="font-bold text-green-600 text-lg">{skill.growth}</span>
                                 </div>
-                                <span class="font-bold text-green-600 text-lg">+45%</span>
-                            </div>
-                            <div
-                                class="bg-green-50 border border-green-200 p-4 rounded-lg flex items-center justify-between">
-                                <div>
-                                    <div class="flex items-center mb-1">
-                                        <span
-                                            class="bg-blue-100 font-semibold text-blue-800 px-2 py-1 rounded text-xs font-medium mr-2">Cloud</span>
-                                        <span class="font-medium">Serverless Architecture</span>
-                                    </div>
-                                    <p class="text-sm text-gray-600">Certification: AWS Serverless</p>
-                                </div>
-                                <span class="font-bold text-green-600 text-lg">+38%</span>
-                            </div>
-                            <div
-                                class="bg-green-50 border border-green-200 p-4 rounded-lg flex items-center justify-between">
-                                <div>
-                                    <div class="flex items-center mb-1">
-                                        <span
-                                            class="bg-purple-100 font-semibold text-purple-800 px-2 py-1 rounded text-xs font-medium mr-2">DevOps</span>
-                                        <span class="font-medium">MLOps</span>
-                                    </div>
-                                    <p class="text-sm text-gray-600">Certification: MLOps Engineer</p>
-                                </div>
-                                <span class="font-bold text-green-600 text-lg">+32%</span>
-                            </div>
+                            ))}
                         </div>
                     </div>
+
+                    {/* Declining Skills */}
                     <div>
-                        <h3 class="flex items-center font-semibold text-gray-700 mb-4">
-                            <span class="material-icons text-red-500 mr-2">warning</span>
+                        <h3 className="flex items-center font-semibold text-gray-700 dark:text-dark-text mb-4">
+                            <span className="material-icons text-red-500 mr-2">warning</span>
                             Skill Declining Alerts
                         </h3>
-                        <div class="space-y-3">
-                            <div class="bg-red-50 border border-red-200 p-4 rounded-lg">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <p class="font-semibold text-gray-800">jQuery</p>
-                                        <p class="text-sm text-gray-600 mb-2">Declining in job postings and new projects</p>
+                        <div className="space-y-3">
+                            {currentData.declining_skills.map((skill, index) => (
+                                <div key={index} className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-semibold text-gray-800">{skill.skill}</p>
+                                            <p className="text-sm text-gray-600 mb-2">Declining in demand</p>
+                                        </div>
+                                        <span className="font-bold text-red-600 text-lg">{skill.decline}</span>
                                     </div>
-                                    <span class="font-bold text-red-600 text-lg">-35%</span>
+                                    <span className="text-sm text-gray-600">
+                                        Consider: {skill.alternatives.map((alt, i) => (
+                                            <span key={i} className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs mr-2">
+                                                {alt}
+                                            </span>
+                                        ))}
+                                    </span>
                                 </div>
-                                <span class="text-sm text-gray-600">Consider: <span
-                                    class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs mr-2">React</span><span
-                                        class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs mr-2">Vue.js</span></span>
-                            </div>
-                            <div class="bg-red-50 border border-red-200 p-4 rounded-lg">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <p class="font-semibold text-gray-800">Flash</p>
-                                        <p class="text-sm text-gray-600 mb-2">Legacy technology being phased out</p>
-                                    </div>
-                                    <span class="font-bold text-red-600 text-lg">-88%</span>
-                                </div>
-                                <span class="text-sm text-gray-600">Consider: <span
-                                    class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs mr-2">HTML5</span><span
-                                        class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs mr-2">WebAssembly</span></span>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 </div>
             </div>
 
 
+            <div class="border-t border-primary dark:border-accent pt-8"></div>
 
-            <div class="border-t border-gray-200 pt-8"></div>
 
-
-            <div class="max-w-7xl mx-auto">
-                <div class="bg-violet-50 p-6 rounded-2xl shadow-sm mb-8">
-                    <div class="flex items-center mb-6">
-                        <span class="material-icons text-violet-600 text-3xl mr-3">auto_awesome</span>
-                        <h2 class="text-xl font-bold text-gray-800">Weekly Market Summary</h2>
+            <div className="max-w-7xl mx-auto">
+                <div className="bg-accent/10 dark:bg-accent/25 p-6 rounded-2xl shadow-lg mb-8">
+                    <div className="flex items-center mb-6">
+                        <span className="material-icons text-violet-600 text-3xl mr-3">auto_awesome</span>
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-dark-text">Daily News</h2>
                     </div>
 
-                    <div class="">
-                        <div class="space-y-4">
-                            <div class="border rounded-lg">
-                                <div class="p-4 flex justify-between items-center cursor-pointer">
-                                    <div class="flex items-center">
-                                        <span class="material-icons text-blue-500 mr-3">description</span>
-                                        <div>
-                                            <p class="text-sm text-blue-500">Paper</p>
-                                            <h4 class="font-semibold text-gray-800">Autonomous AI Agents in Financial
-                                                Services
-                                            </h4>
-                                        </div>
+                    {/* Industry Switcher */}
+                    {/* <div className="mb-4 flex gap-3">
+                        {availableIndustries.map((industry) => (
+                            <button
+                                key={industry}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedIndustry === industry
+                                        ? "bg-violet-600 text-white"
+                                        : "bg-gray-200 text-gray-700"
+                                    }`}
+                                onClick={() => setSelectedIndustry(industry)}
+                            >
+                                {industry}
+                            </button>
+                        ))}
+                    </div> */}
+
+                    {/* News List */}
+                    <div className="space-y-4">
+                        {isLoading && <p className="text-gray-500">Loading news...</p>}
+                        {error && <p className="text-red-500">{error}</p>}
+                        {!isLoading && news.length === 0 && <p className="text-gray-500">No news available.</p>}
+
+                        {news.map((article, idx) => (
+                            <div key={idx} className="border rounded-lg border-accent">
+                                <div className="p-4 flex justify-between items-center cursor-pointer">
+                                    <div>
+                                        <h4 className="font-semibold text-gray-800 dark:text-dark-text/80">{article.title}</h4>
                                     </div>
-                                    <span class="material-icons text-gray-500">expand_more</span>
                                 </div>
-                                <div class="px-4 pb-4">
-                                    <p class="text-sm text-gray-600 mb-3">Published in IEEE Transactions on AI, this paper
-                                        explores the implementation of autonomous decision-making systems in financial
-                                        trading
-                                        and risk management.</p>
-                                    <a class="text-sm font-semibold text-blue-600 hover:underline" href="#">View Source</a>
+                                <div className="px-4 pb-4">
+                                    <p className="text-sm text-gray-600 dark:text-dark-text/40 mb-3">
+                                        {article.description || "No description available."}
+                                    </p>
+                                    <a
+                                        className="text-sm font-semibold text-primary hover:underline"
+                                        href={article.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        View Source
+                                    </a>
                                 </div>
                             </div>
-                            <div class="border rounded-lg">
-                                <div class="p-4 flex justify-between items-center cursor-pointer">
-                                    <div class="flex items-center">
-                                        <span class="material-icons text-green-500 mr-3">verified</span>
-                                        <div>
-                                            <p class="text-sm text-green-500">Patent</p>
-                                            <h4 class="font-semibold text-gray-800">Quantum-Resistant Cryptographic Methods
-                                            </h4>
-                                        </div>
-                                    </div>
-                                    <span class="material-icons text-gray-500">expand_more</span>
-                                </div>
-                                <div class="px-4 pb-4">
-                                    <p class="text-sm text-gray-600 mb-3">Recent patent filing by IBM covering novel
-                                        approaches
-                                        to post-quantum cryptography for enterprise applications.</p>
-                                    <a class="text-sm font-semibold text-blue-600 hover:underline" href="#">View Patent</a>
-                                </div>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
-
             </div>
         </div>
-    )
+    );
 }
 
 export default SkillTrend

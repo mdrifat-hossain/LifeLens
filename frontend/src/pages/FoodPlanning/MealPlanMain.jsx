@@ -261,7 +261,7 @@ function MealPlanMain() {
                                     <h2 className="text-xl font-bold text-[#111418] dark:text-dark-text mb-2">
                                         No Weekly Plan Yet
                                     </h2>
-                                    <p className="text-[#637488] dark:text-[#b4b4b4] mb-4 mb-4">
+                                    <p className="text-[#637488] dark:text-[#b4b4b4] mb-4">
                                         Click the button to generate your personalized meal plan.
                                     </p>
                                     <button

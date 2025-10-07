@@ -26,6 +26,7 @@ import CareerDashboardLayout from './pages/careerPath/CareerDashboardLayout'
 import LearningPathLayout from './pages/careerPath/LearningPathLayout'
 import PathDetailsLayout from './pages/careerPath/PathDetailsLayout'
 import AiHelp from './pages/careerPath/AiHelp'
+import CareerSurvey from './pages/careerPath/CareerSurvey'
 
 
 function ProtectedMealPlan() {
@@ -36,6 +37,16 @@ function ProtectedMealPlan() {
 	}
 
 	return <MealPlan />;
+}
+
+function ProtectedCareerPlan() {
+	const isNewUserCareer = false; // fake flag for now
+
+	if (isNewUserCareer) {
+		return <Navigate to="/career-survey" replace />;
+	}
+
+	return <CareerDashboardLayout />;
 }
 
 
@@ -71,10 +82,11 @@ function App() {
 						<Route index element={<Email />} />
 					</Route>
 
-					<Route path="/career-path" element={<CareerDashboardLayout />}>
+					<Route path="/career-survey" element={<CareerSurvey />} />
+
+					<Route path="/career-path/*" element={<ProtectedCareerPlan />}>
 						<Route index element={<CareerDashboard />} />
 						<Route path="skills-trend" element={<SkillTrend />} />
-
 						<Route path="learning-path" element={<LearningPathLayout />}>
 							<Route index element={<LearningPathList />} />
 							<Route path="path-details" element={<PathDetailsLayout />}>
@@ -83,6 +95,7 @@ function App() {
 							</Route>
 						</Route>
 					</Route>
+
 
 				</Route>
 			</Routes>
