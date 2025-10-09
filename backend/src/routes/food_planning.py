@@ -159,12 +159,12 @@ async def all_meal_generator(request: Request = None, db_dep=Depends(get_db)):
         all_meal_plan = await redis_db_services.get_meal_plan(user_id, cursor)
         return {"status": "success", "data": all_meal_plan}
 
-    except HTTPException as e:
-        raise e
+    # except HTTPException as e:
+    #     raise e
     except Exception as e:
-        print("Meal generator error:", traceback.format_exc())
         import traceback
         print(traceback.format_exc())
+        print("Meal generator error:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
@@ -305,73 +305,139 @@ async def add_grocery_list(input: GroceryListInput, request_obj: Request, db_dep
             GroceryItem(name=item.name, quantity=item.quantity, price=item.price)
             for item in input.items
         ]
+
+        # We'll send the full raw item names to the AI so it can see units like "2 kg", "1kg", etc.
         grocery_names = []
 
-        # ✅ Extract details from each grocery item
-        parsed_items = []  # will hold (product_name, unit_quantity_number, unit_unit, item_quantity)
+        # parsed_items will keep BOTH the raw name and a cleaned product name (without unit)
+        parsed_items = []
+
+        # helper regex for unit detection anywhere in the name
+        UNIT_RE = re.compile(
+            r"(\d+(?:\.\d+)?)\s*(kg|g|grams?|gram|l|litre|liter|ml|pcs?|pc|pack(?:et)?s?|bottle|dozen|oz|ounce|ltr)\b",
+            flags=re.I
+        )
 
         for item in items:
-            full_name = item.name
-            parts = full_name.split(" - ", 1)
-            product_name = parts[0].strip()
-            unit_quantity_text = parts[1].strip() if len(parts) > 1 else ""
+            full_name = (item.name or "").strip()
+            raw_name = full_name  # keep original for AI and for mapping keys
 
-            # Extract numeric unit quantity
-            match = re.search(r"\d+(\.\d+)?", unit_quantity_text)
-            unit_quantity_number = float(match.group()) if match else 1.0
+            # Try to detect unit info from anywhere in the full_name (not only after a dash)
+            unit_quantity_number = 1.0
+            unit_unit = "unit"
 
-            # Extract unit (kg, pcs, liter, etc.)
-            unit_match = re.search(r"[a-zA-Z]+", unit_quantity_text)
-            unit_unit = unit_match.group().strip() if unit_match else "unit"
+            m = UNIT_RE.search(full_name)
+            if m:
+                try:
+                    unit_quantity_number = float(m.group(1))
+                except:
+                    unit_quantity_number = 1.0
+                unit_unit = m.group(2).lower()
+                # normalize some common unit variants to a canonical form (optional)
+                if unit_unit in ("litre", "liter", "ltr"):
+                    unit_unit = "L"
+                elif unit_unit in ("grams", "gram", "g"):
+                    unit_unit = "g"
+                elif unit_unit in ("kg", "kgs"):
+                    unit_unit = "kg"
+                elif unit_unit in ("ml",):
+                    unit_unit = "ml"
+                # else keep as-is (pcs, pack, bottle, oz, etc.)
+            else:
+                # fallback: also check patterns with hyphen like "- 2 kg" or "-1kg"
+                m2 = re.search(r"[-–—]\s*(\d+(?:\.\d+)?)\s*(kg|g|ml|l|pcs?|pack(?:et)?s?)", full_name, flags=re.I)
+                if m2:
+                    try:
+                        unit_quantity_number = float(m2.group(1))
+                    except:
+                        unit_quantity_number = 1.0
+                    unit_unit = m2.group(2).lower()
 
-            item_quantity = item.quantity
-            grocery_names.append(product_name)
+            # cleaned product name: remove detected units and trailing hyphen segments so we get a nice title
+            cleaned = UNIT_RE.sub("", full_name)
+            # remove trailing hyphen groups like " - 2 kg" or " - 500ml"
+            cleaned = re.sub(r"[-–—]\s*[\d\w\s]+$", "", cleaned).strip()
+            # normalize whitespace
+            cleaned = re.sub(r"\s+", " ", cleaned).strip()
+            if not cleaned:
+                cleaned = full_name  # fallback
 
+            grocery_names.append(raw_name)  # send the full name to AI
             parsed_items.append({
-                "product_name": product_name,
+                "raw_name": raw_name,
+                "product_name": cleaned,
                 "unit_quantity_number": unit_quantity_number,
                 "unit_unit": unit_unit,
-                "item_quantity": item_quantity
+                "item_quantity": item.quantity
             })
 
-            print(f"🛒 Product: {product_name} | 🧮 {unit_quantity_number} {unit_unit} × {item_quantity}")
+            print(f"🛒 Product: {raw_name} | 🧮 {unit_quantity_number} {unit_unit} × {item.quantity}")
 
-        # ✅ Send to AI for comparison
+        # ✅ Send to AI for comparison (send the full names)
         domains = [
             {"name": "users_available_grocery_item", "desc": users_available_grocery},
             {"name": "new_grocery_item_name", "desc": grocery_names},  
         ]
         query = "Compare new grocery items with available groceries and tell which ones match or not."
 
+        print("grocery_names (sent to AI):", grocery_names)
         print("✅ processing ai_chat_manager...")
         ai_reply = await ai_chat_manager(domains=domains, query=query)
         ai_text = ai_reply["ai_text"]
         print("🤖 AI Response:\n", ai_text)
 
-        # ✅ Parse AI response
-        # Example: "Chinigura Rice Premium = Rice\nChicken Eggs (Layer) = Eggs\nMilk = no match"
-        # ✅ Parse AI response
+        # ✅ Parse AI response (expect AI used the exact raw strings from 'grocery_names')
         mapping = {}
         for line in ai_text.strip().split("\n"):
             if "=" in line:
-                new_item, mapped_item = [x.strip() for x in line.split("=", 1)]
-                mapping[new_item] = mapped_item
+                try:
+                    # Left side should be the exact raw_name you sent
+                    new_item, right_side = [x.strip() for x in line.split("=", 1)]
+                    parts = [p.strip() for p in right_side.split("|")]
 
-        print("🗺️ Parsed AI mapping:", mapping)
+                    matched_item = parts[0]
+                    unit_quantity_number = 1.0
+                    unit_unit = "unit"
 
-        # ✅ Update or Insert each grocery item
+                    for part in parts[1:]:
+                        if "unit_quantity" in part:
+                            m = re.search(r"[\d.]+", part)
+                            if m:
+                                unit_quantity_number = float(m.group())
+                        elif "unit_unit" in part:
+                            unit_unit = part.split("=")[-1].strip()
+
+                    # store by the exact raw_name key (normalize whitespace)
+                    key = re.sub(r"\s+", " ", new_item).strip()
+                    mapping[key] = {
+                        "matched_item": matched_item,
+                        "unit_quantity_number": unit_quantity_number,
+                        "unit_unit": unit_unit
+                    }
+
+                except Exception as e:
+                    print(f"⚠️ Failed to parse line: {line} | Error: {e}")
+
+        print("🗺️ Parsed AI mapping with units:", mapping)
+
+        # ✅ Update or Insert each grocery item (lookup mapping by raw_name)
         for item in parsed_items:
-            name = item["product_name"]
-            unit_quantity_number = item["unit_quantity_number"]
-            unit_unit = item["unit_unit"]
+            raw_name = re.sub(r"\s+", " ", item["raw_name"]).strip()
             item_quantity = item["item_quantity"]
 
-            # Get mapped/generic grocery name from AI (always a valid title now)
-            matched_name = mapping.get(name, name)  # fallback to itself if missing
+            if raw_name in mapping:
+                matched = mapping[raw_name]
+                matched_name = matched["matched_item"]
+                unit_quantity_number = matched["unit_quantity_number"]
+                unit_unit = matched["unit_unit"]
+            else:
+                # fallback to the cleaned product_name + local unit extraction
+                matched_name = item["product_name"]
+                unit_quantity_number = item["unit_quantity_number"]
+                unit_unit = item["unit_unit"]
 
-            print(f"🔄 Processing: {name} → {matched_name} | {unit_quantity_number} {unit_unit} × {item_quantity}")
+            print(f"🔄 Processing: {raw_name} → {matched_name} | {unit_quantity_number} {unit_unit} × {item_quantity}")
 
-            # ✅ Update or insert grocery
             await food_planning_db.update_or_insert_available_grocery(
                 cursor=cursor,
                 conn=conn,
@@ -381,6 +447,8 @@ async def add_grocery_list(input: GroceryListInput, request_obj: Request, db_dep
                 unit_quantity_number=unit_quantity_number,
                 unit_unit=unit_unit
             )
+
+
 
         return {
             "status": "success",

@@ -44,6 +44,15 @@ async def store_routine_days(cursor, conn, routine_id, selected_days, user_id):
 
 
 async def get_user_routines(cursor, user_id):
+    # ✅ Step 1: Reset routines not completed today
+    reset_query = """
+        UPDATE weekly_routines
+        SET is_completed_today = 0
+        WHERE user_id = %s 
+        AND (last_completed_date IS NULL OR last_completed_date <> CURDATE());
+    """
+    await cursor.execute(reset_query, (user_id,))
+
     query = """
         SELECT 
             r.routine_id, 

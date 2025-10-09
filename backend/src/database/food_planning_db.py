@@ -285,16 +285,44 @@ async def get_available_grocery_ai(cursor, user_id: str):
     return await cursor.fetchall()
 
 
+# ✅ Define unit conversions and normalization helpers
+UNIT_CONVERSIONS = {
+    # Weight
+    ("kg", "g"): 1000,
+    ("g", "kg"): 1 / 1000,
+    # Volume
+    ("ltr", "ml"): 1000,
+    ("ml", "ltr"): 1 / 1000,
+    # Quantity
+    ("dozen", "pcs"): 12,
+    ("pcs", "dozen"): 1 / 12,
+}
+
+def normalize_unit(unit: str) -> str:
+    """Normalize unit variations into consistent short forms."""
+    if not unit:
+        return "unit"
+    unit = unit.lower().strip()
+    mapping = {
+        "liter": "ltr", "litre": "ltr", "liters": "ltr", "litres": "ltr", "l": "ltr",
+        "gram": "g", "grams": "g", "gm": "g",
+        "kgs": "kg", "kilogram": "kg", "kilograms": "kg",
+        "mls": "ml", "milliliter": "ml", "milliliters": "ml",
+        "piece": "pcs", "pieces": "pcs", "pc": "pcs"
+    }
+    return mapping.get(unit, unit)
+
 async def update_or_insert_available_grocery(
     cursor, conn, user_id, grocery_name,
     item_quantity, unit_quantity_number, unit_unit
 ):
     """
-    ✅ If grocery exists → update available_amount.
+    ✅ If grocery exists → update available_amount (replace old unit with AI unit if mismatch).
     ✅ If not → insert new grocery.
-    Example stored format: "5 kg", "12 pcs", "2 liters"
+    Example stored format: "5 kg", "12 pcs", "2 ltr"
     """
     try:
+        unit_unit = normalize_unit(unit_unit)
         added_amount = item_quantity * unit_quantity_number  # e.g. 2 × 1.5 = 3 kg
 
         # 🔍 Check if grocery already exists for the user
@@ -310,27 +338,39 @@ async def update_or_insert_available_grocery(
             match = re.search(r"([\d\.]+)", existing_text)
             existing_amount = float(match.group(1)) if match else 0.0
 
-            # Try to extract the existing unit
+            # Extract and normalize existing unit
             unit_match = re.search(r"[a-zA-Z]+", existing_text)
-            existing_unit = unit_match.group().strip() if unit_match else unit_unit
+            existing_unit = normalize_unit(unit_match.group() if unit_match else unit_unit)
 
-            # ⚖️ Handle possible unit mismatch gracefully
-            if existing_unit.lower() != unit_unit.lower():
-                print(f"⚠️ Unit mismatch for {grocery_name}: existing={existing_unit}, new={unit_unit}")
-                # Optionally, store both units as separate rows
-                new_grocery_name = f"{grocery_name} ({unit_unit})"
-                await cursor.execute("""
-                    INSERT INTO available_groceries (user_id, grocery_name, available_amount)
-                    VALUES (%s, %s, %s)
-                """, (user_id, new_grocery_name, f"{added_amount} {unit_unit}"))
-                await conn.commit()
-                print(f"🆕 Added new unit variant {new_grocery_name}: {added_amount} {unit_unit}")
-                return
+            # ⚖️ Handle units
+            if existing_unit == unit_unit:
+                # ✅ Same unit → simple addition
+                new_total = existing_amount + added_amount
+                new_text = f"{new_total} {unit_unit}"
 
-            new_total = existing_amount + added_amount
-            new_text = f"{new_total} {unit_unit}"
+            elif (existing_unit, unit_unit) in UNIT_CONVERSIONS:
+                # ✅ Convertible units (e.g. kg ↔ g, L ↔ ml)
+                conversion = UNIT_CONVERSIONS[(existing_unit, unit_unit)]
+                converted_existing = existing_amount * conversion
+                total = converted_existing + added_amount
+                new_text = f"{total:.2f} {unit_unit}"
+                print(f"🔁 Converted {existing_amount}{existing_unit} → {converted_existing}{unit_unit}")
 
-            # ✅ Update existing grocery
+            elif (unit_unit, existing_unit) in UNIT_CONVERSIONS:
+                # ✅ Convertible in opposite direction
+                conversion = UNIT_CONVERSIONS[(unit_unit, existing_unit)]
+                converted_ai = added_amount * conversion
+                total = existing_amount + converted_ai
+                new_text = f"{total:.2f} {existing_unit}"
+                print(f"🔁 Converted {added_amount}{unit_unit} → {converted_ai}{existing_unit}")
+
+            else:
+                # ⚠️ Different & non-convertible → replace with AI's unit
+                print(f"⚠️ Unit mismatch for {grocery_name}: replacing {existing_unit} → {unit_unit}")
+                new_total = existing_amount + added_amount
+                new_text = f"{new_total} {unit_unit}"
+
+            # ✅ Update grocery record
             await cursor.execute("""
                 UPDATE available_groceries
                 SET available_amount = %s
@@ -338,10 +378,10 @@ async def update_or_insert_available_grocery(
             """, (new_text, user_id, grocery_name))
             await conn.commit()
 
-            print(f"🔄 Updated {grocery_name}: {existing_text} → {new_text}")
+            print(f"✅ Updated {grocery_name}: {existing_text} → {new_text}")
 
         else:
-            # 🆕 Insert new grocery (first time)
+            # 🆕 Insert new grocery
             new_text = f"{added_amount} {unit_unit}"
             await cursor.execute("""
                 INSERT INTO available_groceries (user_id, grocery_name, available_amount)
@@ -355,7 +395,6 @@ async def update_or_insert_available_grocery(
         await conn.rollback()
         print(f"❌ Error updating or inserting grocery '{grocery_name}': {e}")
         raise e
-
 # ✅ Store grocery list and its items
 async def store_grocery_list(cursor, conn, user_id, list_name, total_price, items):
     """

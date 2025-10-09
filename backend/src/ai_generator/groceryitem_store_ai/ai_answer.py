@@ -21,21 +21,37 @@ def build_rag_chain_for_groceryItem():
     You are an AI grocery assistant. 
     Compare the **new grocery items** with the **available grocery items** in the user's database.
 
-    For each new grocery item:
-    - If it clearly refers to or matches an existing grocery name (even partially), 
-      return that match (e.g., "Chinigura Rice Premium" ≈ "Rice").
-    - If it doesn't match any existing grocery item, 
-      guess a **generic one-word grocery type** (e.g., "Atta", "Yeast", "Oil", "Salt", "Sugar", "Cheese", "Meat", "Sauce", "Spice", "Vegetable", etc.)
-      that best describes the product.
-    - Do NOT return "no match".
-    - If you're uncertain, choose the closest possible grocery-related word.
+    Your task:
+    - Identify which existing grocery item each new grocery refers to (or choose a generic grocery word like "Rice", "Flour", "Oil", "Eggs", etc.).
+    - Accurately extract **unit quantity** (e.g., 1, 2, 500) and **unit type** (e.g., kg, g, L, ml, pcs) from each item's text.
+    - If there is no clear unit, assume `1 unit`.
+    - Do not guess randomly — infer from item text like "1kg", "2 kg", "500ml", "5 pcs", etc.
+    - Return the result in **exactly this format**:
 
-    Use the following exact format (no extra text):
-    <new_item_name> = <matched_item_name OR generic_one_word_guess>
+    <new_item_name> = <matched_or_generic_name> | unit_quantity=<number> | unit_unit=<unit>
 
     ---
 
-    Available groceries (with amount info):
+    ### Example
+
+    Available groceries:
+    Rice, Oil, Atta, Milk
+
+    New grocery items:
+    Aci Nutrilife High Fibre Atta 2kg  
+    Fresh Milk 1 Litre  
+    Fortune Rice Bran Oil - 5 L  
+    Loose Onion 500g
+
+    Your output:
+    Aci Nutrilife High Fibre Atta 2kg = Atta | unit_quantity=2 | unit_unit=kg  
+    Fresh Milk 1 Litre = Milk | unit_quantity=1 | unit_unit=L  
+    Fortune Rice Bran Oil - 5 L = Oil | unit_quantity=5 | unit_unit=L  
+    Loose Onion 500g = Vegetable | unit_quantity=500 | unit_unit=g
+
+    ---
+
+    Available groceries:
     {context}
 
     New grocery items:
@@ -45,6 +61,7 @@ def build_rag_chain_for_groceryItem():
     {question}
     """
     )
+
 
 
     llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-001")

@@ -43,17 +43,7 @@ function RoutineDashboard() {
     const completedTasks = tasks.filter((t) => t.completed).length;
     const taskCompletion = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-    // Current routine
-    const currentRoutine = routines.find((r) => {
-        const now = time.getHours() * 60 + time.getMinutes(); // minutes of day
-        const [startHour, startMin] = r.start_time.split(":").map(Number);
-        const [endHour, endMin] = r.end_time.split(":").map(Number);
 
-        const startMinutes = startHour * 60 + startMin;
-        const endMinutes = endHour * 60 + endMin;
-
-        return now >= startMinutes && now <= endMinutes;
-    });
 
     // Time left in the day (till midnight)
     const minutesLeft = (24 * 60) - (time.getHours() * 60 + time.getMinutes());
@@ -151,6 +141,25 @@ function RoutineDashboard() {
 
         fetchRoutines();
     }, []);
+
+    // Current routine
+    // Get today's day abbreviation
+    const todayAbbr = time.toLocaleDateString("en-US", { weekday: "short" }); // e.g., "Mon", "Tue"
+
+    const currentRoutine = routines.find((r) => {
+        // Skip routines not scheduled for today
+        if (!r.days.includes(todayAbbr)) return false;
+
+        // Convert times to minutes
+        const now = time.getHours() * 60 + time.getMinutes();
+        const [startHour, startMin] = r.start_time.split(":").map(Number);
+        const [endHour, endMin] = r.end_time.split(":").map(Number);
+
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+
+        return now >= startMinutes && now <= endMinutes;
+    });
 
     // group routines by day
     const routinesByDay = dayOrder.reduce((acc, day) => {
