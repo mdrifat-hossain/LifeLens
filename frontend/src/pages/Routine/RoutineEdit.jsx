@@ -707,7 +707,7 @@ function RoutineEdit() {
 
 
     return (
-        <div className="flex-grow mx-auto px-6 py-8 bg-light-background dark:bg-dark-background pl-10 pr-10 h-screen">
+        <div className="flex-grow mx-auto px-6 py-8 bg-light-background dark:bg-dark-background pl-10 pr-10 h-[calc(100vh-4rem)]">
             <ToastContainer />
             <div className="flex flex-col lg:flex-row gap-8">
                 <form

@@ -130,7 +130,7 @@ async def reorder_items(body: dict, request: Request, db_dep=Depends(get_db)):
     try:
         user_details = authenticate_and_get_user_details(request)
         user_id = user_details["user_id"]
-        print(f"✅ Reordering user_id: {user_id}, body: {body}")
+        # print(f"✅ Reordering user_id: {user_id}, body: {body}")
 
         items = body.get("items", [])
         await learning_path_db.update_learning_path_order(cursor, conn, user_id, items)
@@ -242,7 +242,7 @@ async def edit_path_item(
     item_id: int, body: dict, request: Request, db_dep=Depends(get_db)
 ):
     try:
-        print("✅ Edit Path Item Body:", body)
+        # print("✅ Edit Path Item Body:", body)
         cursor, conn = db_dep
         user_details = authenticate_and_get_user_details(request)
         user_id = user_details["user_id"]
@@ -251,7 +251,7 @@ async def edit_path_item(
         item_type = body.get("type")
         description = body.get("description")
 
-        print(f"✅ Updating item_id: {item_id}, user_id: {user_id}, title: {title}, type: {item_type}, description: {description}")
+        # print(f"✅ Updating item_id: {item_id}, user_id: {user_id}, title: {title}, type: {item_type}, description: {description}")
         await learning_path_db.update_path_item(
             cursor, conn, item_id, user_id, title, item_type, description
         )
@@ -279,7 +279,7 @@ async def get_learning_path_progress_route(request_obj: Request, db_dep=Depends(
         user_details = authenticate_and_get_user_details(request_obj)
         user_id = user_details.get("user_id")
         
-        print(f"✅ Fetching learning path progress for user_id: {user_id}")
+        # print(f"✅ Fetching learning path progress for user_id: {user_id}")
 
         progress = await learning_path_db.get_learning_path_progress(cursor, conn, user_id)
         return progress

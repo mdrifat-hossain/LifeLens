@@ -118,8 +118,8 @@ async def delete_grocery(cursor, conn, grocery_id: int, user_id: str):
 async def add_meal_plan(cursor, conn, meal_data: dict):
     try:
         await cursor.execute("""
-            INSERT INTO meal_plan (user_id, meal_day, meal_type, meal_name, nutrition, recipe, ingredients_used)
-            VALUES (%s,%s,%s,%s,%s,%s,%s)
+            INSERT INTO meal_plan (user_id, meal_day, meal_type, meal_name, nutrition, recipe, ingredients_used, img_link)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
         """, (
             meal_data["user_id"], 
             meal_data["meal_day"], 
@@ -127,7 +127,8 @@ async def add_meal_plan(cursor, conn, meal_data: dict):
             json.dumps(meal_data['meal_name']),
             json.dumps(meal_data["nutrition"]),
             json.dumps(meal_data["recipe"]),
-            json.dumps(meal_data["ingredients_used"])
+            json.dumps(meal_data["ingredients_used"]),
+            meal_data["img_link"]
         ))
         await conn.commit()
 
@@ -177,13 +178,15 @@ async def change_meal(cursor, conn, user_id: str, meal_data: dict):
             SET meal_name=%s, 
                 nutrition=%s, 
                 recipe=%s, 
-                ingredients_used=%s 
+                ingredients_used=%s,
+                img_link=%s
             WHERE user_id=%s AND meal_day=%s AND meal_type=%s
         """, (
             meal_data['name'],
             json.dumps(meal_data["nutrition"]),
             json.dumps(meal_data["recipe"]),
             json.dumps(meal_data["ingredients_used"]),
+            meal_data['img_link'],
             user_id, 
             meal_data["day"], 
             meal_data["meal_type"]

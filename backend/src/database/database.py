@@ -9,7 +9,7 @@ DB_CONFIG = {
     "host": "localhost",
     "user": "root",
     "password": "",
-    "db": "lifelens",
+    "db": "lifelensfinal",
     "minsize": 1,
     "maxsize": 5,
     "autocommit": True,  # we'll explicitly commit/rollback

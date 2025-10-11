@@ -39,48 +39,6 @@ export function Layout() {
 
     return (
         <div className="app-layout bg-light-background dark:bg-dark-background">
-            {/* <header
-                className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-10 py-3 transition-all duration-300 ${scrolled
-                        ? "bg-white/50 dark:bg-dark-background/50 backdrop-blur-md shadow-md border-b border-gray-200 dark:border-gray-800"
-                        : "bg-transparent"
-                    }`}
-            >
-                <div className="flex items-center gap-4">
-                    <Link to="/dashboard">
-                        <h2 className="text-lg font-bold text-[#111418] dark:text-dark-text">
-                            LifeLens
-                        </h2>
-                    </Link>
-                </div>
-
-                <div className="flex flex-1 justify-end gap-8">
-                    <div className="flex items-center gap-9 text-light-text dark:text-dark-text text-sm font-medium leading-normal">
-                        <SignedIn>
-                            <Link to="/dashboard">Dashboard</Link>
-                            <Link to="/meal-plan">Food & Planning</Link>
-                            <Link to="/manage-day">Manage Day</Link>
-                            <Link to="/financial-dashboard">Finance</Link>
-                            <Link to="/career-path">Career</Link>
-                            <Link to="/email">Email</Link>
-
-                            <UserButton afterSignOutUrl="/">
-                                <UserButton.MenuItems>
-                                    <UserButton.Action
-                                        label={darkMode ? "Light Mode" : "Dark Mode"}
-                                        onClick={() => setDarkMode((prev) => !prev)}
-                                        labelIcon={darkMode ? "☀️" : "🌙"}
-                                    />
-                                </UserButton.MenuItems>
-                            </UserButton>
-                        </SignedIn>
-                    </div>
-
-                    <div
-                        className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10"
-                        style={{ backgroundImage: `url('...your image url...')` }}
-                    ></div>
-                </div>
-            </header> */}
             <header
                 className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-10 py-3 transition-all duration-300 ${scrolled
                     ? "bg-white/50 dark:bg-dark-background/50 backdrop-blur-md shadow-md border-b border-gray-200 dark:border-gray-800"
@@ -136,7 +94,13 @@ export function Layout() {
 
                         {/* User Button */}
                         <UserButton afterSignOutUrl="/">
+                            
                             <UserButton.MenuItems>
+                                <UserButton.Action
+                                    label="Profile"
+                                    onClick={() => setDarkMode((prev) => !prev)}
+                                    labelIcon="👤"
+                                />
                                 <UserButton.Action
                                     label={darkMode ? "Light Mode" : "Dark Mode"}
                                     onClick={() => setDarkMode((prev) => !prev)}

@@ -1,7 +1,13 @@
 import { useState } from "react";
 
-function DayMealCard({ title, details, image, recipe }) {
+function DayMealCard({ title, details, image, ingredients, recipe }) {
     const [showRecipe, setShowRecipe] = useState(false);
+    let parsedIngredients = [];
+    try {
+        parsedIngredients = typeof ingredients === "string" ? JSON.parse(ingredients) : ingredients;
+    } catch (err) {
+        console.error("Failed to parse ingredients:", err);
+    }
 
     return (
         <div className="p-4">
@@ -27,6 +33,25 @@ function DayMealCard({ title, details, image, recipe }) {
                         className="aspect-video bg-center bg-no-repeat bg-cover rounded-xl flex-1"
                         style={{ backgroundImage: `url(${image})` }}
                     ></div>
+                </div>
+
+                <div className="transition-all duration-500 overflow-hidden">
+                    {Array.isArray(parsedIngredients) && parsedIngredients.length > 0 ? (
+                        <div className="space-y-2">
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-dark-text/90">
+                                Ingredients
+                            </h3>
+                            <ol className="list-decimal list-inside space-y-1 text-gray-700 dark:text-dark-text/70">
+                                {parsedIngredients.map((item, idx) => (
+                                    <li key={idx}>
+                                        {item.name} – {item.amount_used} (remaining: {item.remaining})
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+                    ) : (
+                        <p className="text-gray-500">No ingredients available.</p>
+                    )}
                 </div>
 
                 {/* ✅ Animated recipe section */}

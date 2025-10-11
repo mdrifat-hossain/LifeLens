@@ -432,3 +432,112 @@ async def get_today_progress(cursor, user_id, today_short):
         raise HTTPException(
             status_code=500, detail=f"DB error in get_today_progress: {e}"
         )
+
+
+# get todays routine for free time suggestion
+async def get_user_routines_by_days(cursor, user_id):
+
+    query = """
+        SELECT
+        r.routine_name,
+        r.start_time,
+        r.end_time,
+        r.description,
+        (SELECT GROUP_CONCAT(d2.day_of_week ORDER BY d2.id)
+            FROM routine_days d2
+            WHERE d2.routine_id = r.routine_id) AS days,
+        COALESCE(lp.is_running, 0) AS is_running
+        FROM weekly_routines r
+        LEFT JOIN learningpathlist lp
+        ON r.path_id = lp.path_id
+        WHERE r.user_id = %s
+        AND (r.path_id IS NULL OR lp.is_running = 1)
+        AND EXISTS (
+            SELECT 1
+            FROM routine_days d
+            WHERE d.routine_id = r.routine_id
+            AND d.day_of_week = ELT(
+                DAYOFWEEK(UTC_TIMESTAMP() + INTERVAL 6 HOUR),
+                'Sun','Mon','Tue','Wed','Thu','Fri','Sat'
+            )
+        )
+        ORDER BY r.start_time;
+
+
+    """
+    await cursor.execute(query, (user_id,))
+    rows = await cursor.fetchall()
+
+    routines = []
+    for row in rows:
+
+        def format_time(value):
+            if value is None:
+                return None
+            if isinstance(value, timedelta):
+                # Convert timedelta to HH:MM format
+                total_seconds = value.seconds
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                return f"{hours:02}:{minutes:02}"
+            return str(value)
+
+        routines.append(
+            {
+                "task_name": row["routine_name"],
+                "start_time": format_time(row["start_time"]),
+                "end_time": format_time(row["end_time"]),
+                "description": row["description"],
+                "days": row["days"]
+            }
+        )
+    return routines
+
+
+# ✅ Delete all health alert by user
+async def delete_all_free_time_suggestion(cursor, conn, user_id: str):
+    try:
+        await cursor.execute(
+            "DELETE FROM free_time_suggestion WHERE user_id=%s", (user_id,)
+        )
+        await conn.commit()
+
+        # await clear_user_cache(user_id, "get_health_alert")
+
+        return {"deleted": cursor.rowcount}
+    except Exception as e:
+        await conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ✅ Insert health alert by user
+async def insert_free_time_suggestion(cursor, conn, user_id: str, suggestion: dict, today_user):
+    try:
+        suggestion_json = json.dumps(suggestion)
+        await cursor.execute(
+            """
+            INSERT INTO free_time_suggestion (user_id, suggestion, generated_date)
+            VALUES (%s, %s, %s)
+            """,
+            (user_id, suggestion_json, today_user),
+        )
+        await conn.commit()
+
+        return {"id": cursor.lastrowid}
+    except Exception as e:
+        await conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ✅ Get free time suggestion by user
+async def get_free_time_suggestion(cursor, user_id: str, today_user):
+    await cursor.execute(
+            """
+            SELECT suggestion 
+            FROM free_time_suggestion 
+            WHERE user_id = %s AND generated_date = %s
+            """,
+            (user_id, today_user),
+        )
+    existing_record = await cursor.fetchone()
+    return existing_record

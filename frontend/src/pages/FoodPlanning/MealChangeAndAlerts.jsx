@@ -259,10 +259,10 @@ const MealChangeAndAlerts = ({ mealData, onUpdateMeal }) => {
                 </div>
             ))} */}
 
-            <button
+            {/* <button
                 onClick={healthAlertGenerator}
                 className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-light-text text-sm ml-5 mb-5">
-                Temp btn for Alert</button>
+                Temp btn for Alert</button> */}
 
             <div className="grid grid-rows-3 md:grid-rows-3 gap-6 ml-4">
 

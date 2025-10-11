@@ -325,7 +325,7 @@ function GroceryList() {
                     </div>
                 </div>
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8 flex items-start">
+            {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8 flex items-start">
                 <div className="bg-blue-100 text-blue-600 p-2 rounded-full mr-4">
                     <svg className="w-6 h-6 text-blue-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                         <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 9a3 3 0 0 1 3-3m-2 15h4m0-3c0-4.1 4-4.9 4-9A6 6 0 1 0 6 9c0 4 4 5 4 9h4Z" />
@@ -352,7 +352,7 @@ function GroceryList() {
 
                     </a>
                 </div>
-            </div>
+            </div> */}
             <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Your Lists</h2>
@@ -407,7 +407,7 @@ function GroceryList() {
                                     <h3 className="text-lg font-semibold dark:text-primary">Available Groceries</h3>
                                     <div className="flex items-center gap-2">
                                         <button
-                                            className="text-sm text-gray-500 hover:text-gray-800"
+                                            className="text-sm text-gray-300 hover:text-gray-500"
                                             onClick={() => { if (!saving) closeModal(); }}
                                         >
                                             Cancel
@@ -415,7 +415,7 @@ function GroceryList() {
                                         <button
                                             onClick={handleSave}
                                             disabled={saving}
-                                            className={`ml-2 px-4 py-2 rounded text-white ${saving ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"}`}
+                                            className={`ml-2 px-4 py-2 rounded text-dark ${saving ? "bg-gray-400" : "bg-primary hover:bg-primary/80"}`}
                                         >
                                             {saving ? "Saving..." : "Save Changes"}
                                         </button>
@@ -439,7 +439,7 @@ function GroceryList() {
                                             <div className="col-span-6">
                                                 <input
                                                     type="text"
-                                                    className="w-full border px-2 py-1 rounded"
+                                                    className="w-full px-2 py-1 rounded border-1 border-accent/50 focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                                     value={it.grocery_name}
                                                     onChange={(e) => updateWorkingItem(it.ID ?? it.__tempId, { grocery_name: e.target.value })}
                                                     placeholder="Item name"
@@ -450,7 +450,7 @@ function GroceryList() {
                                                     type="number"
                                                     min="0"
                                                     step="0.01"
-                                                    className="w-full border px-2 py-1 rounded"
+                                                    className="w-full px-2 py-1 rounded border-1 border-accent/50 focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                                     value={it.amount_num}
                                                     onChange={(e) => {
                                                         const val = e.target.value === "" ? "" : Number(e.target.value);
@@ -461,7 +461,7 @@ function GroceryList() {
                                             <div className="col-span-2">
                                                 <input
                                                     type="text"
-                                                    className="w-full border px-2 py-1 rounded"
+                                                    className="w-full px-2 py-1 rounded border-1 border-accent/50 focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                                     value={it.amount_unit}
                                                     onChange={(e) => {
                                                         const unit = e.target.value;

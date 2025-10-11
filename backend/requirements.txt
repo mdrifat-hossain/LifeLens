@@ -17,3 +17,6 @@ chromadb
 google-generativeai
 langchain-chroma
 sentence-transformers
+google-genai
+cloudinary
+pillow

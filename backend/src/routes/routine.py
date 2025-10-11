@@ -5,9 +5,11 @@ import traceback
 from ..utils import authenticate_and_get_user_details
 from ..database.database import get_db
 from ..database import routine_db
+from ..ai_generator.ai_routine import ai_generator
 import time, json
 from ..database.redis_db import redis_db_services
 from datetime import datetime
+from zoneinfo import ZoneInfo 
 
 router = APIRouter()
 
@@ -49,7 +51,6 @@ async def add_routine(
         return {"status": "success", "routine_id": routine_id}
 
     except Exception as e:
-        import traceback
         print(traceback.format_exc())
         print("Error is storing routine ", str(e))
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
@@ -221,3 +222,70 @@ async def get_today_progress_api(request_obj: Request, db_dep=Depends(get_db)):
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error fetching today progress: {str(e)}")
+    
+
+@router.get("/free-time-suggestion")
+async def free_time_suggestion(request: Request = None, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details.get("user_id")
+        user_tz_name = user_details.get("timezone", "UTC")  # fallback if not set
+
+        # ✅ 1. Safely handle invalid timezone strings
+        try:
+            user_tz = ZoneInfo(user_tz_name)
+        except Exception:
+            user_tz = ZoneInfo("UTC")
+
+        # ✅ 2. Get today's date in the user's timezone
+        today_user = datetime.now(user_tz).date()
+
+        # ✅ 3. Check if suggestion for today already exists
+        existing_record = await routine_db.get_free_time_suggestion(cursor, user_id, today_user)
+
+        if existing_record:
+            return {
+                "status": "success",
+                "message": "Returned existing suggestion",
+                "suggestion": existing_record,
+            }
+
+        # ✅ 4. Delete old ones and generate a new suggestion
+        await routine_db.delete_all_free_time_suggestion(cursor, conn, user_id)
+
+        user_records = await routine_db.get_user_routines_by_days(cursor, user_id)
+
+        result = await ai_generator.suggestion_generator(user_records)
+        suggestion_dict = result.dict()
+
+        await routine_db.insert_free_time_suggestion(cursor, conn, user_id, suggestion_dict, today_user)
+
+        return {
+            "status": "success",
+            "message": f"Generated new suggestion for {today_user} ({user_tz_name})",
+            "suggestion": suggestion_dict,
+        }
+
+    except Exception as e:
+        print(traceback.format_exc())
+        await conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+# @router.get("/get-health-alert")
+# async def get_health_alert(request: Request = None, db_dep=Depends(get_db)):
+
+#     try:
+#         cursor, conn = db_dep
+#         user_details = authenticate_and_get_user_details(request)
+#         user_id = user_details.get("user_id")
+
+#         health_alerts = await redis_db_services.get_health_alert(user_id, cursor)
+
+#         return {"status": "success", "data": health_alerts}
+
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500, detail=f"Failed to fetch history: {str(e)}"
+#         )

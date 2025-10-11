@@ -16,7 +16,7 @@ function MealPlanMain() {
     const [activeTab, setActiveTab] = useState("daily");
     const [errorDialog, setErrorDialog] = useState(null);
     const { darkMode } = useTheme();
-
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
 
     useEffect(() => {
@@ -89,7 +89,8 @@ function MealPlanMain() {
             const mealObj = {
                 title: `${capitalize(item.meal_type)}: ${item.meal_name.replace(/"/g, '')}`,
                 details: `Calories: ${nutrition.calories} | Protein: ${nutrition.protein_g}g | Carbs: ${nutrition.carbs_g}g | Fat: ${nutrition.fat_g}g`,
-                image: "https://media.post.rvohealth.io/wp-content/uploads/2024/06/oatmeal-bowl-blueberries-strawberries-breakfast-1200x628-facebook.jpg",
+                image: item.img_link,
+                ingredients: item.ingredients_used,
                 recipe: parsedRecipe // ✅ FIXED
             };
 
@@ -140,7 +141,18 @@ function MealPlanMain() {
         });
     };
 
+    const handleRegenerateClick = () => {
+        setShowConfirmDialog(true);
+    };
 
+    const confirmRegenerate = () => {
+        setShowConfirmDialog(false);
+        generate_meal();
+    };
+
+    const cancelRegenerate = () => {
+        setShowConfirmDialog(false);
+    };
 
 
     return (
@@ -157,7 +169,7 @@ function MealPlanMain() {
                         </div>
 
                         <button
-                            onClick={generate_meal}
+                            onClick={handleRegenerateClick}
                             disabled={isLoading || mealData.length === 0}
                             className={`flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-light-text hover:shadow-lg shadow text-sm font-semibold leading-normal tracking-[0.015em] mt-5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed `}
                         >
@@ -298,6 +310,32 @@ function MealPlanMain() {
                                 className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
                             >
                                 Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ✅ Confirmation Dialog */}
+            {showConfirmDialog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 transition-opacity duration-300">
+                    <div className="bg-accent rounded-xl shadow-xl max-w-md w-full p-6 transform transition-transform duration-300 scale-100">
+                        <h2 className="text-lg font-semibold mb-3">Regenerate Meal Plan?</h2>
+                        <p className="text-dark-text mb-5">
+                            This will replace your current meal plan. It will take a while. Are you sure you want to continue?
+                        </p>
+                        <div className="flex justify-center gap-4">
+                            <button
+                                onClick={cancelRegenerate}
+                                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmRegenerate}
+                                className="px-4 py-2 rounded-lg bg-primary text-black font-semibold hover:shadow-lg transition"
+                            >
+                                Confirm
                             </button>
                         </div>
                     </div>

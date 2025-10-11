@@ -6,9 +6,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApi } from "../../utils/api";
 import { infinity } from 'ldrs'
 import { UserButton } from "@clerk/clerk-react";
+import { useUser, useClerk } from "@clerk/clerk-react";
+
 infinity.register()
 
 function ChatPage() {
+    const { user } = useUser();
     const { messages,
         setMessages,
         isLoading,
@@ -136,7 +139,7 @@ function ChatPage() {
             console.error("Error sending messages to backend:", err);
             setIsLoading(false);
         }
-        finally{
+        finally {
             fetchChats();
         }
     };
@@ -160,7 +163,7 @@ function ChatPage() {
 
 
 
-            <div className="min-h-screen bg-background text-light-text dark:text-dark-text flex">
+            <div className="h-[calc(100vh-4rem)] bg-background text-light-text dark:text-dark-text flex">
                 {/* ✅ Fixed Sidebar */}
                 <div className="fixed left-0  h-full w-[20%] bg-gradient-to-b from-secondary/10 to-background border-r border-secondary/20 flex flex-col">
                     <div className="p-6 pb-0">
@@ -237,6 +240,7 @@ function ChatPage() {
                                             </div>
                                         )}
 
+
                                         <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
@@ -250,8 +254,20 @@ function ChatPage() {
                                             <p className="whitespace-pre-wrap break-words">
                                                 {msg.message_content}
                                             </p>
-                                            
+
                                         </motion.div>
+
+                                        {msg.sender === "user" && (
+                                            <button
+                                                className="rounded-full w-8 h-8 overflow-hidden"
+                                            >
+                                                <img
+                                                    src={user?.imageUrl}
+                                                    alt="User Avatar"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </button>
+                                        )}
                                         <div ref={messagesEndRef} />
                                     </div>
                                 ))}

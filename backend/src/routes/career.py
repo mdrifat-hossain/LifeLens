@@ -1,3 +1,5 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from fastapi import Depends, HTTPException, Request, APIRouter, Body, Query
 from typing import List, Union
 from pydantic import BaseModel
@@ -8,6 +10,7 @@ from ..database import career_planning_db
 import time, json
 from ..database.redis_db import redis_db_services
 from ..ai_generator.industry_trend import ai_generator
+from ..ai_generator.ai_skill_suggestion import ai_skill_generator 
 import aiohttp
 
 router = APIRouter()
@@ -158,3 +161,56 @@ async def get_industry_news(request: Request, career_field: str  = Query(..., de
     await conn.commit()
 
     return {"source": "api", "news": fresh_news}
+
+
+
+@router.get("/skill-suggestion")
+async def skill_suggestion(request: Request = None, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details.get("user_id")
+        user_tz_name = user_details.get("timezone", "UTC")
+
+        # Handle timezone safely
+        try:
+            user_tz = ZoneInfo(user_tz_name)
+        except Exception:
+            user_tz = ZoneInfo("UTC")
+
+        today_user = datetime.now(user_tz).date()
+
+        # ✅ 1. Check if monthly suggestion already exists
+        existing_record = await career_planning_db.get_skill_suggestions(cursor, user_id, today_user)
+
+        if existing_record:
+            return {
+                "status": "success",
+                "message": "Returned existing monthly suggestion",
+                "suggestion": existing_record["suggestion"],
+            }
+
+        # ✅ 2. Fetch latest career planning info
+        user_info = await career_planning_db.get_users_career_planning_info(cursor, user_id)
+
+        if not user_info:
+            raise HTTPException(status_code=404, detail="Career planning info not found")
+
+        # ✅ 3. Generate AI-based skill suggestion
+        result = await ai_skill_generator.suggestion_generator(user_info)
+        suggestion_dict = result.dict()
+
+        # ✅ 4. Delete old and insert new
+        await career_planning_db.delete_all_skill_suggestion(cursor, conn, user_id)
+        await career_planning_db.insert_skill_suggestion(cursor, conn, user_id, suggestion_dict, today_user)
+
+        return {
+            "status": "success",
+            "message": f"Generated new monthly skill suggestion for {today_user} ({user_tz_name})",
+            "suggestion": suggestion_dict,
+        }
+
+    except Exception as e:
+        print(traceback.format_exc())
+        await conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

@@ -2,6 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from ..database.database import get_db
 from ..database import account_db
 from ..utils import authenticate_and_get_user_details
+from ..ai_generator.ai_finance import ai_generator
+from zoneinfo import ZoneInfo
+from datetime import datetime
+import traceback
 
 router = APIRouter()
 
@@ -362,3 +366,52 @@ async def delete_transaction_route(transaction_id: int, request_obj: Request, db
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error in delete_transaction: {str(e)}")
+    
+
+@router.get("/finance-suggestion")
+async def finance_suggestion(request: Request = None, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details.get("user_id")
+        user_tz_name = user_details.get("timezone", "UTC")
+
+        # Handle timezone safely
+        try:
+            user_tz = ZoneInfo(user_tz_name)
+        except Exception:
+            user_tz = ZoneInfo("UTC")
+
+        today_user = datetime.now(user_tz).date()
+
+        # ✅ 1. Check if monthly suggestion already exists
+        existing_record = await account_db.get_finance_suggestion(cursor, user_id, today_user)
+
+        if existing_record:
+            return {
+                "status": "success",
+                "message": "Returned existing monthly suggestion",
+                "suggestion": existing_record["suggestion"],
+            }
+
+        # ✅ 2. Fetch last 60 days of transactions
+        user_transactions = await account_db.get_all_transactions_by_month(cursor, user_id)
+
+        # ✅ 3. Generate AI-based suggestion
+        result = await ai_generator.suggestion_generator(user_transactions)
+        suggestion_dict = result.dict()
+
+        # ✅ 4. Delete old ones and insert new
+        await account_db.delete_all_finance_suggestion(cursor, conn, user_id)
+        await account_db.insert_finance_suggestion(cursor, conn, user_id, suggestion_dict, today_user)
+
+        return {
+            "status": "success",
+            "message": f"Generated new monthly suggestion for {today_user} ({user_tz_name})",
+            "suggestion": suggestion_dict,
+        }
+
+    except Exception as e:
+        print(traceback.format_exc())
+        await conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

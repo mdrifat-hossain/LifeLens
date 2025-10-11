@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from datetime import datetime
-
+import json
 
 # ✅ create new account
 async def create_account(cursor, conn, user_id, account_name, balance):
@@ -509,3 +509,85 @@ async def delete_transaction(cursor, conn, user_id: int, transaction_id: int):
         raise HTTPException(
             status_code=500, detail=f"DB error in delete_transaction: {e}"
         )
+
+
+# ✅ Fetch last 60 days of transactions
+async def get_all_transactions_by_month(cursor, user_id):
+    try:
+        sql = """
+            SELECT 
+                t.amount, 
+                t.type, 
+                t.description, 
+                t.created_at, 
+                c.category_name
+            FROM transactions t
+            JOIN accounts a ON t.account_ID = a.account_ID
+            JOIN categories c ON t.category_ID = c.category_id
+            WHERE a.user_ID = %s
+            AND t.created_at >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+            ORDER BY t.created_at DESC;
+        """
+        await cursor.execute(sql, (user_id,))
+        rows = await cursor.fetchall()
+
+        transactions = []
+        for row in rows:
+            transactions.append({
+                "transaction_amount": row["amount"],
+                "transaction_type": row["type"],
+                "description": row["description"],
+                "date": row["created_at"].isoformat() if row["created_at"] else None,
+                "transaction_category": row["category_name"]
+            })
+
+        return transactions
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DB error in get_all_transactions_by_month: {e}")
+
+
+# ✅ Delete all old finance suggestions for the user
+async def delete_all_finance_suggestion(cursor, conn, user_id: str):
+    try:
+        await cursor.execute(
+            "DELETE FROM finance_suggestion WHERE user_id = %s", (user_id,)
+        )
+        await conn.commit()
+        return {"deleted": cursor.rowcount}
+    except Exception as e:
+        await conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ✅ Insert a new finance suggestion
+async def insert_finance_suggestion(cursor, conn, user_id: str, suggestion: dict, generated_date):
+    try:
+        suggestion_json = json.dumps(suggestion)
+        await cursor.execute(
+            """
+            INSERT INTO finance_suggestion (user_id, suggestion, generated_date)
+            VALUES (%s, %s, %s)
+            """,
+            (user_id, suggestion_json, generated_date),
+        )
+        await conn.commit()
+        return {"id": cursor.lastrowid}
+    except Exception as e:
+        await conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ✅ Retrieve suggestion for the current month
+async def get_finance_suggestion(cursor, user_id: str, today_user):
+    first_of_month = today_user.replace(day=1)
+    await cursor.execute(
+        """
+        SELECT suggestion
+        FROM finance_suggestion
+        WHERE user_id = %s
+        AND generated_date >= %s
+        """,
+        (user_id, first_of_month),
+    )
+    return await cursor.fetchone()

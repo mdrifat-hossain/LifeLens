@@ -161,3 +161,71 @@ async def get_industry_trends_combined(cursor, user_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+
+# ✅ Get user career info (you already have a version of this)
+async def get_users_career_planning_info(cursor, user_id: str):
+    try:
+        await cursor.execute("""
+            SELECT user_id, current_user_location, job_type, preferred_working_country, preferred_industry, 
+                   preferred_job_roles, career_goal, preferred_career, preferred_field_or_domain, 
+                   preferred_work_activity, industry_to_work_for, skill_to_develop
+            FROM career_planning 
+            WHERE user_id = %s 
+            ORDER BY id DESC 
+            LIMIT 1
+        """, (user_id,))
+        
+        row = await cursor.fetchone()
+        if not row:
+            return None
+
+        return {
+            "job_type": row["job_type"],
+            "preferred_industry": json.loads(row["preferred_industry"]) if row["preferred_industry"] else None,
+            "preferred_job_roles": json.loads(row["preferred_job_roles"]) if row["preferred_job_roles"] else None,
+            "career_goal": json.loads(row["career_goal"]) if row["career_goal"] else None,
+            "preferred_career": json.loads(row["preferred_career"]) if row["preferred_career"] else None,
+            "preferred_field_or_domain": json.loads(row["preferred_field_or_domain"]) if row["preferred_field_or_domain"] else None,
+            "preferred_work_activity": json.loads(row["preferred_work_activity"]) if row["preferred_work_activity"] else None,
+            "industry_to_work_for": json.loads(row["industry_to_work_for"]) if row["industry_to_work_for"] else None,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database retrieval error: {str(e)}")
+
+
+# ✅ Delete all existing suggestions for the user
+async def delete_all_skill_suggestion(cursor, conn, user_id: str):
+    try:
+        await cursor.execute("DELETE FROM career_skill_suggestion WHERE user_id=%s", (user_id,))
+        await conn.commit()
+        return {"deleted": cursor.rowcount}
+    except Exception as e:
+        await conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ✅ Insert a new suggestion
+async def insert_skill_suggestion(cursor, conn, user_id: str, suggestion: dict, generated_date):
+    try:
+        suggestion_json = json.dumps(suggestion)
+        await cursor.execute("""
+            INSERT INTO career_skill_suggestion (user_id, suggestion, generated_date)
+            VALUES (%s, %s, %s)
+        """, (user_id, suggestion_json, generated_date))
+        await conn.commit()
+        return {"id": cursor.lastrowid}
+    except Exception as e:
+        await conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ✅ Retrieve suggestion for the current month
+async def get_skill_suggestions(cursor, user_id: str, today_user):
+    first_of_month = today_user.replace(day=1)
+    await cursor.execute("""
+        SELECT suggestion 
+        FROM career_skill_suggestion
+        WHERE user_id = %s
+        AND generated_date >= %s
+    """, (user_id, first_of_month))
+    return await cursor.fetchone()

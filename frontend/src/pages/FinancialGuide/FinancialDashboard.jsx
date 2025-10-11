@@ -128,6 +128,7 @@ function FinancialDashboard() {
     // const [accounts, setAccounts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [type, setType] = useState("");
+    const [financeSuggestion, setFinanceSuggestion] = useState([]);
 
     const defaultCategories = [
         { category_id: 1, category_name: "Food & Dining" },
@@ -137,6 +138,15 @@ function FinancialDashboard() {
         { category_id: 5, category_name: "Utilities" },
         { category_id: 6, category_name: "Other" },
     ];
+
+    const colorMap = {
+        Yellow: "bg-yellow-50 border-yellow-400 text-yellow-800",
+        Blue: "bg-blue-50 border-blue-400 text-blue-800",
+        Red: "bg-red-50 border-red-400 text-red-800",
+        Green: "bg-green-50 border-green-400 text-green-800",
+        Purple: "bg-purple-50 border-purple-400 text-purple-800",
+    };
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -163,7 +173,37 @@ function FinancialDashboard() {
             }
         };
 
+        const getFinanceSuggestion = async () => {
+            try {
+                const res = await makeRequest("finance-suggestion", { method: "GET" });
+
+                if (res.status === "success") {
+                    let suggestionData;
+
+                    // First, get the string inside `res.suggestion`
+                    if (typeof res.suggestion === "string") {
+                        suggestionData = JSON.parse(res.suggestion);
+                    } else if (res.suggestion?.suggestions) {
+                        // Already parsed
+                        suggestionData = res.suggestion;
+                    } else {
+                        // Sometimes res.suggestion is {suggestion: 'json string'}
+                        suggestionData = JSON.parse(res.suggestion.suggestion);
+                    }
+
+                    setFinanceSuggestion(suggestionData.suggestions || []);
+                    console.log("Fetched suggestions:", suggestionData);
+
+                } else {
+                    console.log("No suggestions found");
+                }
+            } catch (err) {
+                console.error("Error fetching routines:", err);
+            }
+        };
+
         fetchData();
+        getFinanceSuggestion();
     }, []);
 
     const handleAddTransaction = async () => {
@@ -316,7 +356,7 @@ function FinancialDashboard() {
 
 
     return (
-        <div className="max-w-7xl mx-auto mt-5 h-auto">
+        <div className="max-w-7xl mx-auto mt-5 h-auto pb-8">
             <header className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Dashboard</h1>
@@ -342,7 +382,7 @@ function FinancialDashboard() {
                                 {/* Close Button */}
                                 <button
                                     onClick={() => setShowForm(false)}
-                                    className="absolute top-3 right-3 text-gray-600 dark:text-gray-300 hover:text-red-500"
+                                    className="absolute top-5 text-2xl right-6 text-gray-600 dark:text-gray-300 hover:text-red-500"
                                 >
                                     ✕
                                 </button>
@@ -358,10 +398,10 @@ function FinancialDashboard() {
                                         onChange={(e) =>
                                             setFormData({ ...formData, category_id: e.target.value })
                                         }
-                                        className="w-full border rounded-lg px-3 py-2 mb-3
+                                        className="w-full border-1 border-accent rounded-lg px-3 py-2 mb-3
              bg-light-background text-light-text
              dark:bg-dark-background dark:text-dark-text
-             focus:outline-none focus:ring-2 focus:ring-primary"
+             focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                         required
                                     >
                                         <option value="">Select Category</option>
@@ -381,13 +421,13 @@ function FinancialDashboard() {
                                         onChange={(e) =>
                                             setFormData({ ...formData, limit_amount: Number(e.target.value) })
                                         }
-                                        className="border p-2 rounded w-full mb-3"
+                                        className="border p-2 rounded-lg w-full mb-3 focus:border-accent focus:ring focus:ring-accent focus:outline-none border-accent"
                                         required
                                     />
 
                                     <button
                                         type="submit"
-                                        className="w-full bg-primary text-white px-4 py-2 rounded hover:bg-primary/90"
+                                        className="w-full bg-primary text-light-text px-4 py-2 rounded hover:bg-primary/90"
                                     >
                                         Save Budget
                                     </button>
@@ -415,7 +455,7 @@ function FinancialDashboard() {
                                 <label className="block text-sm mb-1">Transaction Name</label>
                                 <input
                                     type="text"
-                                    className="w-full border rounded-lg px-3 py-2"
+                                    className="w-full border-1 border-accent/50 rounded-lg px-3 py-2 focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                     value={transactionName}
                                     onChange={(e) => setTransactionName(e.target.value)}
                                 />
@@ -425,7 +465,7 @@ function FinancialDashboard() {
                                 <label className="block text-sm mb-1">Amount</label>
                                 <input
                                     type="number"
-                                    className="w-full border rounded-lg px-3 py-2"
+                                    className="w-full border-1 border-accent/50 rounded-lg px-3 py-2 focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
                                 />
@@ -436,10 +476,10 @@ function FinancialDashboard() {
                                 <select
                                     value={accountId}
                                     onChange={(e) => setAccountId(e.target.value)}
-                                    className="w-full border rounded-lg px-3 py-2
+                                    className="
              bg-light-background text-light-text
              dark:bg-dark-background dark:text-dark-text
-             focus:outline-none focus:ring-2 focus:ring-primary"
+              w-full border-1 border-accent/50 rounded-lg px-3 py-2 focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                 >
                                     <option value="">Select Account</option>
                                     {accounts.map((acc) => (
@@ -459,14 +499,13 @@ function FinancialDashboard() {
                                 <select
                                     value={type}
                                     onChange={(e) => setType(e.target.value)}
-                                    className="w-full border rounded-lg px-3 py-2
-               bg-light-background text-light-text
-               dark:bg-dark-background dark:text-dark-text
-               focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="bg-light-background text-light-text
+             dark:bg-dark-background dark:text-dark-text
+              w-full border-1 border-accent/50 rounded-lg px-3 py-2 focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                 >
-                                    <option value="">Select Type</option>
-                                    <option value="CREDIT">Credit</option>
-                                    <option value="DEBIT">Debit</option>
+                                    <option value="" className="bg-light-background text-light-text dark:bg-light-background/20 dark:text-dark-text">Select Type</option>
+                                    <option value="CREDIT" className="bg-light-background text-light-text dark:bg-light-background/20 dark:text-dark-text">Credit</option>
+                                    <option value="DEBIT" className="bg-light-background text-light-text dark:bg-light-background/20 dark:text-dark-text">Debit</option>
                                 </select>
                             </div>
 
@@ -475,10 +514,9 @@ function FinancialDashboard() {
                                 <select
                                     value={categoryId}
                                     onChange={(e) => setCategoryId(e.target.value)}
-                                    className="w-full border rounded-lg px-3 py-2
-             bg-light-background text-light-text
+                                    className="bg-light-background text-light-text
              dark:bg-dark-background dark:text-dark-text
-             focus:outline-none focus:ring-2 focus:ring-primary"
+              w-full border-1 border-accent/50 rounded-lg px-3 py-2 focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                 >
                                     <option value="">Select Category</option>
                                     {categories.map((cat) => (
@@ -497,12 +535,12 @@ function FinancialDashboard() {
 
                             <div className="flex justify-end space-x-3">
                                 <Dialog.Close asChild>
-                                    <button className="px-4 py-2 rounded-lg border">Cancel</button>
+                                    <button className="px-4 py-2 rounded-lg border border-accent/50">Cancel</button>
                                 </Dialog.Close>
                                 <Dialog.Close asChild>
                                     <button
                                         onClick={handleAddTransaction}
-                                        className="px-4 py-2 rounded-lg bg-primary text-light-text dark:text-dark-text"
+                                        className="px-4 py-2 rounded-lg bg-primary text-light-text"
                                     >
                                         Save
                                     </button>
@@ -589,42 +627,34 @@ function FinancialDashboard() {
                 <div className="bg-light-background dark:bg-dark-background border-1 border-accent/70 p-6 rounded-lg shadow">
                     <h2 className="text-xl font-bold text-gray-800 dark:text-dark-text mb-6">Smart Suggestions</h2>
                     <div className="space-y-6">
-                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                            <div className="flex">
-                                <div className="mr-3">
-                                    <FaLightbulb className="text-yellow-500" size={24} />
-                                </div>
-                                <div>
-                                    <p className="font-bold text-yellow-800">Reduce Dining Out</p>
-                                    <p className="text-sm text-yellow-700 mt-1">You spent 40% more on dining this month. Try
-                                        cooking at home to save $200.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
-                            <div className="flex">
-                                <div className="mr-3">
-                                    <FaArrowTrendUp className="text-green-500" size={24} />
-                                </div>
-                                <div>
-                                    <p className="font-bold text-green-800">Increase Savings</p>
-                                    <p className="text-sm text-green-700 mt-1">Based on your income, you could save an
-                                        additional $300 monthly.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-                            <div className="flex">
-                                <div className="mr-3">
-                                    <MdReport className="text-blue-500" size={24} />
-                                </div>
-                                <div>
-                                    <p className="font-bold text-blue-800">Budget Alert</p>
-                                    <p className="text-sm text-blue-700 mt-1">You're 85% through your shopping budget for this
-                                        month.</p>
-                                </div>
-                            </div>
-                        </div>
+
+                        {Array.isArray(financeSuggestion) && financeSuggestion.length > 0 ? (
+                            financeSuggestion.map((a, idx) => {
+                                const colorClass = colorMap[a.color] || "bg-gray-50 border-gray-300 text-gray-800";
+
+                                return (
+                                    <div
+                                        key={idx}
+                                        className={`border-l-4 p-4 rounded-r-lg ${colorClass}`}
+                                    >
+                                        <div className="flex">
+                                            <div className="mr-3">
+                                                <span className="text-2xl">{a.react_icon}</span>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold">{a.title}</p>
+                                                <p className="text-sm mt-1">{a.description}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <p className="text-gray-500 text-sm">No suggestions available.</p>
+                        )}
+
+
+
                     </div>
                 </div>
             </div>
@@ -644,8 +674,8 @@ function FinancialDashboard() {
                                 >
                                     <option value="all">All Accounts</option>
                                     {accounts.map((acc) => (
-                                        <option key={acc.account_id} value={acc.account_id} 
-                                        className="bg-light-background text-light-text dark:bg-light-background/20 dark:text-dark-text">
+                                        <option key={acc.account_id} value={acc.account_id}
+                                            className="bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text">
                                             {acc.account_name}
                                         </option>
                                     ))}
@@ -718,7 +748,7 @@ function FinancialDashboard() {
                             {/* Dialog for Add Account */}
                             <Dialog.Root>
                                 <Dialog.Trigger asChild>
-                                    <button className="flex items-center bg-primary font-semibold py-2 px-4 rounded-lg hover:bg-primary/70 text-light-text dark:text-dark-text cursor-pointer">
+                                    <button className="flex items-center bg-primary font-semibold py-2 px-4 rounded-lg hover:bg-primary/70 text-light-text  cursor-pointer">
                                         <IoMdAdd className="mr-2" size={20} /> Add Account
                                     </button>
                                 </Dialog.Trigger>
@@ -754,7 +784,7 @@ function FinancialDashboard() {
                                         <label className="block text-sm font-medium mb-1">Account Name</label>
                                         <input
                                             type="text"
-                                            className="w-full border rounded-lg px-3 py-2 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text border-accent/50"
+                                            className="w-full border rounded-lg px-3 py-2 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text border-accent/50 focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                             value={accountName}
                                             onChange={(e) => setAccountName(e.target.value)}
                                         />
@@ -764,7 +794,7 @@ function FinancialDashboard() {
                                         <label className="block text-sm font-medium mb-1">Initial Balance</label>
                                         <input
                                             type="number"
-                                            className="w-full border rounded-lg px-3 py-2 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text border-accent/50"
+                                            className="w-full border rounded-lg px-3 py-2 bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text border-accent/50 focus:border-accent focus:ring focus:ring-accent focus:outline-none"
                                             value={balance}
                                             onChange={(e) => setBalance(e.target.value)}
                                         />
@@ -772,12 +802,12 @@ function FinancialDashboard() {
 
                                     <div className="flex justify-end space-x-3">
                                         <Dialog.Close asChild>
-                                            <button className="px-4 py-2 rounded-lg border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text">Cancel</button>
+                                            <button className="px-4 py-2 rounded-lg border bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text border-accent/50">Cancel</button>
                                         </Dialog.Close>
                                         <Dialog.Close asChild>
                                             <button
                                                 onClick={handleAddAccount}
-                                                className="px-4 py-2 rounded-lg bg-primary text-light-text dark:text-dark-text"
+                                                className="px-4 py-2 rounded-lg bg-primary text-light-text"
                                             >
                                                 Save
                                             </button>
