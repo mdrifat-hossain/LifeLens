@@ -14,6 +14,7 @@ from . import throttling
 from ..ai_generator.groceryitem_store_ai.utils import ai_chat_manager
 from ..ai_generator.foodPlanning.mealGenerator import meal_image_generator
 import re
+from datetime import datetime
 
 router = APIRouter()
 
@@ -33,6 +34,7 @@ class GroceryItem(BaseModel):
 class GroceryListInput(BaseModel):
     list_name: str
     total_price: float
+    account_ID: int        # ✅ Added this field
     items: List[GroceryItem]
 
 
@@ -227,6 +229,135 @@ async def get_all_meal(request: Request = None, db_dep=Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
+@router.get("/get-today-meals")
+async def get_today_meal(request: Request = None, db_dep=Depends(get_db)):
+    try:
+        # --- Get DB connection ---
+        cursor, conn = db_dep
+
+        # --- Authenticate user ---
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details.get("user_id")
+
+        # --- Get today's day name ---
+        today = datetime.now().strftime("%A")  # e.g., "Monday"
+        print(f"✅Today's day: {today}")
+
+        # --- Fetch meals for today ---
+        today_meal_plan = await food_planning_db.get_today_meal(cursor, user_id, today)
+
+        return {"status": "success", "data": today_meal_plan}
+
+    except Exception as e:
+        import traceback
+
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@router.post("/deduct-ingredient")
+async def deduct_ingredient_from_grocery(request: Request, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details.get("user_id")
+
+        body = await request.json()
+        ingredient_name = body.get("ingredient_name")
+        deduct_amount = body.get("deduct_amount")
+        meal_id = body.get("meal_id")  # NEW: pass meal_id from frontend
+        if not ingredient_name or not deduct_amount or not meal_id:
+            raise HTTPException(status_code=400, detail="Missing ingredient or meal_id")
+
+        success = await food_planning_db.deduct_ingredient(
+            cursor, conn, user_id, ingredient_name, deduct_amount
+        )
+
+        if success:
+            print(
+                f"✅ Deducted {deduct_amount} of {ingredient_name} for user {user_id}"
+            )
+            # ✅ Update is_checked in today_meals
+            query_update_checked = """
+                UPDATE meal_plan
+                SET is_checked = 1,
+                    last_checked_date = CURDATE()
+                WHERE ID = %s AND user_id = %s
+            """
+            await cursor.execute(query_update_checked, (meal_id, user_id))
+            await conn.commit()
+
+            return {
+                "status": "success",
+                "message": f"Deducted {deduct_amount} and marked checked.",
+            }
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Ingredient '{ingredient_name}' not found for user.",
+            )
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        import traceback
+
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@router.post("/add-ingredient")
+async def add_ingredient_to_grocery(request: Request, db_dep=Depends(get_db)):
+    """
+    Adds back an ingredient amount to user's available groceries (for unchecking meals)
+    """
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details.get("user_id")
+
+        body = await request.json()
+        ingredient_name = body.get("ingredient_name")
+        add_amount = body.get("add_amount")
+        meal_id = body.get("meal_id")  # NEW: pass meal_id from frontend
+        if not ingredient_name or not add_amount:
+            raise HTTPException(
+                status_code=400, detail="Missing ingredient or add_amount"
+            )
+
+        # Use existing deduct_ingredient function logic, but flip subtraction
+        # You can create a helper in db.py: update_ingredient_amount(cursor, conn, user_id, ingredient_name, amount_change)
+        success = await food_planning_db.add_ingredient(
+            cursor, conn, user_id, ingredient_name, add_amount
+        )
+
+        if success:
+            # ✅ Update is_checked in today_meals
+            query_update_checked = """
+                UPDATE meal_plan
+                SET is_checked = 0,
+                    last_checked_date = NULL
+                WHERE ID = %s AND user_id = %s
+            """
+            await cursor.execute(query_update_checked, (meal_id, user_id))
+            await conn.commit()
+            return {
+                "status": "success",
+                "message": f"Added back {add_amount} of {ingredient_name}",
+            }
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Ingredient '{ingredient_name}' not found for user.",
+            )
+
+    except Exception as e:
+        import traceback
+
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/change-meal-plan")
 async def change_meal_plan(
     query: str = Body(..., embed=False), request: Request = None, db_dep=Depends(get_db)
@@ -264,15 +395,13 @@ async def change_meal_plan(
                 # img_url = meal_image_generator.generate_image(meal["name"])
                 result = meal_image_generator.generate_image(new_meal["name"])
                 img_url = (
-                    result[0]
-                    if isinstance(result, list) and len(result) > 0
-                    else None
+                    result[0] if isinstance(result, list) and len(result) > 0 else None
                 )
-                new_meal['img_link'] = img_url
+                new_meal["img_link"] = img_url
 
             except Exception as e:
                 img_url = None  # or use a fallback placeholder image
-                new_meal['img_link'] = img_url
+                new_meal["img_link"] = img_url
 
             await food_planning_db.change_meal(cursor, conn, user_id, new_meal)
 
@@ -372,6 +501,17 @@ async def add_grocery_list(
             list_name=input.list_name,
             total_price=input.total_price,
             items=input.items,
+        )
+        print("✅ Stored grocery list in DB", input.account_ID)
+        # ✅ Record transaction
+        await food_planning_db.record_transaction(
+            cursor=cursor,
+            conn=conn,
+            account_ID=input.account_ID,
+            description=input.list_name,
+            amount=input.total_price,
+            category_ID=1,
+            type="DEBIT",
         )
 
         # ✅ Prepare grocery item names for AI comparison
@@ -522,15 +662,15 @@ async def add_grocery_list(
                 f"🔄 Processing: {raw_name} → {matched_name} | {unit_quantity_number} {unit_unit} × {item_quantity}"
             )
 
-            await food_planning_db.update_or_insert_available_grocery(
-                cursor=cursor,
-                conn=conn,
-                user_id=user_id,
-                grocery_name=matched_name,
-                item_quantity=item_quantity,
-                unit_quantity_number=unit_quantity_number,
-                unit_unit=unit_unit,
-            )
+            # await food_planning_db.update_or_insert_available_grocery(
+            #     cursor=cursor,
+            #     conn=conn,
+            #     user_id=user_id,
+            #     grocery_name=matched_name,
+            #     item_quantity=item_quantity,
+            #     unit_quantity_number=unit_quantity_number,
+            #     unit_unit=unit_unit,
+            # )
 
         return {
             "status": "success",
