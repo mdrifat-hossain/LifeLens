@@ -232,44 +232,111 @@ function ProductSearch() {
         0
     );
 
+    // const handleAddToMainList = async () => {
+    //     // ✅ Trim and validate list name
+    //     const trimmedListName = listName.trim();
+    //     if (!trimmedListName) return alert("Please enter a list name");
+    //     if (trimmedListName.length > 30) return alert("List name cannot exceed 30 characters");
+
+    //     // ✅ Calculate total price
+    //     const totalPrice = shoppingList.reduce(
+    //         (sum, item) => sum + (parseFloat(item.discounted_price || item.original_price) * item.quantity),
+    //         0
+    //     );
+
+    //     // ✅ Prepare payload
+    //     const payload = {
+    //         list_name: trimmedListName,
+    //         total_price: parseFloat(totalPrice.toFixed(2)),
+    //         items: shoppingList.map(item => ({
+    //             name: item.name,
+    //             quantity: item.quantity,
+    //             price: parseFloat(item.discounted_price || item.original_price),
+    //         })),
+    //     };
+
+    //     try {
+    //         const data = await makeRequest("add_grocery_list", {
+    //             method: "POST",
+    //             body: JSON.stringify(payload),
+    //         });
+
+    //         // ✅ On success: alert and reset all inputs
+    //         alert("List saved successfully!");
+    //         setListName("");          // reset list name
+    //         setShoppingList([]);      // reset shopping list items
+    //     } catch (err) {
+    //         console.error("Error saving shopping list:", err);
+    //         alert("Failed to save the list. Please try again.");
+    //     }
+    // };
+
     const handleAddToMainList = async () => {
-        // ✅ Trim and validate list name
         const trimmedListName = listName.trim();
         if (!trimmedListName) return alert("Please enter a list name");
+        if (!selectedAccount) return alert("Please choose an account");
         if (trimmedListName.length > 30) return alert("List name cannot exceed 30 characters");
 
-        // ✅ Calculate total price
         const totalPrice = shoppingList.reduce(
             (sum, item) => sum + (parseFloat(item.discounted_price || item.original_price) * item.quantity),
             0
         );
 
-        // ✅ Prepare payload
+        const selectedAcc = accounts.find(acc =>
+            selectedAccount.includes(acc.account_name)
+        );
+
+        // 🛑 If no matching account is found, show error and stop
+        if (!selectedAcc) {
+            alert("⚠️ Please select a valid account before saving your grocery list!");
+            return; // stop further execution
+        }
+        console.log("Selected Account:", selectedAcc); // ✅ should log the correct account object
+
         const payload = {
             list_name: trimmedListName,
             total_price: parseFloat(totalPrice.toFixed(2)),
+            account_ID: parseInt(selectedAcc.account_id), // ✅ force int
             items: shoppingList.map(item => ({
                 name: item.name,
-                quantity: item.quantity,
+                quantity: Number(item.quantity),             // ✅ ensure int
                 price: parseFloat(item.discounted_price || item.original_price),
             })),
         };
+        console.log("Payload to send:", payload); // ✅ verify payload structure
+
 
         try {
             const data = await makeRequest("add_grocery_list", {
                 method: "POST",
                 body: JSON.stringify(payload),
             });
-
-            // ✅ On success: alert and reset all inputs
             alert("List saved successfully!");
-            setListName("");          // reset list name
-            setShoppingList([]);      // reset shopping list items
+            setListName("");
+            setShoppingList([]);
+            setSelectedAccount("");
         } catch (err) {
             console.error("Error saving shopping list:", err);
             alert("Failed to save the list. Please try again.");
         }
     };
+
+
+    const [accounts, setAccounts] = useState([]);
+    const [selectedAccount, setSelectedAccount] = useState("");
+    // fetch accounts
+    useEffect(() => {
+        const fetchAccounts = async () => {
+            try {
+                const res = await makeRequest("get-accounts", { method: "GET" });
+                setAccounts(res.accounts || []);
+            } catch (err) {
+                console.error("Error fetching accounts:", err);
+            }
+        };
+        fetchAccounts();
+    }, []);
+
 
 
 
@@ -527,74 +594,36 @@ function ProductSearch() {
                                 value={listName}
                                 onChange={(e) => setListName(e.target.value)}
                             />
-                            <span
-                                className="text-sm font-medium text-gray-500 bg-gray-100 dark:bg-dark-background border-1 border-accent/50 px-2 py-1 rounded-full"
-                            >{shoppingList.length} items</span>
-
+                            <span className="text-sm font-medium text-gray-500 bg-gray-100 dark:bg-dark-background border-1 border-accent/50 px-2 py-1 rounded-full">
+                                {shoppingList.length} items
+                            </span>
                         </div>
-                        {/* <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <p className="font-medium text-gray-800">Organic Bananas</p>
-                                    <p className="text-sm text-gray-500">$2.49</p>
-                                </div>
-                                <button className="text-red-500 hover:text-red-700">
-                                    <svg className="w-6 h-6 text-red-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7.757 12h8.486M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                    </svg>
 
-                                </button>
-                            </div>
-                        </div> */}
+                        {/* ✅ New Account Dropdown */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Choose Account
+                            </label>
+                            <select
+                                className="w-full border border-accent/50 rounded px-3 py-2 dark:bg-dark-background dark:text-dark-text"
+                                value={selectedAccount}
+                                onChange={(e) => setSelectedAccount(e.target.value)}
+                            >
+                                <option value="">Select an account...</option>
+                                {accounts.map((acc) => (
+                                    <option key={acc.account_ID} value={acc.account_ID}>
+                                        {acc.account_name} (৳{acc.balance})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
 
                         <div className="space-y-3">
 
                             {shoppingList.length === 0 && (
                                 <p className="text-sm text-gray-500 dark:text-dark-text">No items added yet.</p>
                             )}
-
-                            {/* {shoppingList.map((item, idx) => (
-                                <div
-                                    key={idx}
-                                    className="flex justify-between items-center p-3 border rounded-lg bg-gray-50"
-                                >
-                                    <div>
-                                        <a
-                                            href={item.link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="font-medium text-gray-800 hover:underline"
-                                        >
-                                            {item.name}
-                                        </a>
-                                        <p className="text-sm text-gray-500">
-                                            ৳{item.discounted_price || item.original_price}
-                                        </p>
-                                    </div>
-                                    <button
-                                        className="text-red-500 hover:text-red-700"
-                                        onClick={() => removeItem(item.name)}
-                                    >
-                                        <svg
-                                            className="w-6 h-6 text-red-800"
-                                            aria-hidden="true"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="24"
-                                            height="24"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                stroke="currentColor"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth="2"
-                                                d="M7.757 12h8.486M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                                            />
-                                        </svg>
-                                    </button>
-                                </div>
-                            ))} */}
 
                             {shoppingList.map((item, idx) => (
                                 <div
@@ -665,7 +694,7 @@ function ProductSearch() {
                             <FaSave className="w-6 h-6 mr-2 text-gray-800" />
                             Save for Later
                         </button> */}
-                        <div
+                        {/* <div
                             className="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg"
                         >
                             <div className="flex">
@@ -682,7 +711,7 @@ function ProductSearch() {
                                     </p>
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                     <div className="mt-8 bg-white border-1 border-accent/50 dark:bg-dark-background p-6 rounded-lg shadow-sm">
                         <h2

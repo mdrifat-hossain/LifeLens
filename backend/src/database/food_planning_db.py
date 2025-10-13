@@ -4,6 +4,7 @@ import re
 from .redis_db.redis_cache_clear import clear_user_cache
 from .redis_db import redis_db_services
 
+
 # ✅ Delete old user meal info
 async def delete_old_user_meal_info(cursor, conn, user_id: str):
     try:
@@ -14,27 +15,41 @@ async def delete_old_user_meal_info(cursor, conn, user_id: str):
         await conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # ✅ Store survey info in food_planning
 async def store_users_foodPlanning_info(cursor, conn, user_id: str, survey_data: dict):
     try:
-        await cursor.execute("""
+        await cursor.execute(
+            """
             INSERT INTO food_planning (
                 user_id, age, gender, height, weight, dietary_pattern, food_allergies,
                 meals_per_day, snacks_per_day, breakfast_time, cuisines, caffeine_consumption,
                 activity_level, exercises, sleep_duration, water_intake, medical_conditions,
                 specific_diets, meal_plan
             ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            user_id, survey_data.get("age"), survey_data.get("gender"),
-            survey_data.get("height"), survey_data.get("weight"),
-            survey_data.get("dietary_pattern"), survey_data.get("food_allergies"),
-            survey_data.get("meals_per_day"), survey_data.get("snacks_per_day"),
-            survey_data.get("breakfast_time"), survey_data.get("cuisines"),
-            survey_data.get("caffeine_consumption"), survey_data.get("activity_level"),
-            survey_data.get("exercises"), survey_data.get("sleep_duration"),
-            survey_data.get("water_intake"), survey_data.get("medical_conditions"),
-            survey_data.get("specific_diets"), survey_data.get("meal_plan")
-        ))
+        """,
+            (
+                user_id,
+                survey_data.get("age"),
+                survey_data.get("gender"),
+                survey_data.get("height"),
+                survey_data.get("weight"),
+                survey_data.get("dietary_pattern"),
+                survey_data.get("food_allergies"),
+                survey_data.get("meals_per_day"),
+                survey_data.get("snacks_per_day"),
+                survey_data.get("breakfast_time"),
+                survey_data.get("cuisines"),
+                survey_data.get("caffeine_consumption"),
+                survey_data.get("activity_level"),
+                survey_data.get("exercises"),
+                survey_data.get("sleep_duration"),
+                survey_data.get("water_intake"),
+                survey_data.get("medical_conditions"),
+                survey_data.get("specific_diets"),
+                survey_data.get("meal_plan"),
+            ),
+        )
         await conn.commit()
 
         await clear_user_cache(user_id, "get_user_food_planning_info")
@@ -54,21 +69,29 @@ async def get_user_food_planning_info(cursor, user_id: str):
 
 # ✅ Get groceries by user
 async def get_groceries_by_user(cursor, user_id: str):
-    await cursor.execute("SELECT * FROM available_groceries WHERE user_id = %s", (user_id,))
+    await cursor.execute(
+        "SELECT * FROM available_groceries WHERE user_id = %s", (user_id,)
+    )
     return await cursor.fetchall()
 
 
 # ✅ Insert a new grocery
 async def add_grocery(cursor, conn, grocery_data: dict, user_id: str):
     try:
-        await cursor.execute("""
+        await cursor.execute(
+            """
             INSERT INTO available_groceries (user_id, grocery_name, available_amount, category, store_link, img_link)
             VALUES (%s,%s,%s,%s,%s,%s)
-        """, (
-            grocery_data["user_id"], grocery_data["grocery_name"],
-            grocery_data["available_amount"], grocery_data["category"],
-            grocery_data.get("store_link", ""), grocery_data.get("img_link", "")
-        ))
+        """,
+            (
+                grocery_data["user_id"],
+                grocery_data["grocery_name"],
+                grocery_data["available_amount"],
+                grocery_data["category"],
+                grocery_data.get("store_link", ""),
+                grocery_data.get("img_link", ""),
+            ),
+        )
         await conn.commit()
 
         await clear_user_cache(user_id, "get_groceries_by_user")
@@ -81,13 +104,15 @@ async def add_grocery(cursor, conn, grocery_data: dict, user_id: str):
 
 
 # ✅ Update grocery
-async def update_grocery(cursor, conn, grocery_id: int, updates: dict, user_id:str):
+async def update_grocery(cursor, conn, grocery_id: int, updates: dict, user_id: str):
     if not updates:
         return {"updated": 0}
     fields = ", ".join([f"{k}=%s" for k in updates.keys()])
     values = list(updates.values()) + [grocery_id]
     try:
-        await cursor.execute(f"UPDATE available_groceries SET {fields} WHERE ID=%s", tuple(values))
+        await cursor.execute(
+            f"UPDATE available_groceries SET {fields} WHERE ID=%s", tuple(values)
+        )
         await conn.commit()
 
         await clear_user_cache(user_id, "get_groceries_by_user")
@@ -102,7 +127,9 @@ async def update_grocery(cursor, conn, grocery_id: int, updates: dict, user_id:s
 # ✅ Delete grocery
 async def delete_grocery(cursor, conn, grocery_id: int, user_id: str):
     try:
-        await cursor.execute("DELETE FROM available_groceries WHERE ID=%s", (grocery_id,))
+        await cursor.execute(
+            "DELETE FROM available_groceries WHERE ID=%s", (grocery_id,)
+        )
         await conn.commit()
 
         await clear_user_cache(user_id, "get_groceries_by_user")
@@ -117,19 +144,22 @@ async def delete_grocery(cursor, conn, grocery_id: int, user_id: str):
 # ✅ Add meal plan
 async def add_meal_plan(cursor, conn, meal_data: dict):
     try:
-        await cursor.execute("""
+        await cursor.execute(
+            """
             INSERT INTO meal_plan (user_id, meal_day, meal_type, meal_name, nutrition, recipe, ingredients_used, img_link)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            meal_data["user_id"], 
-            meal_data["meal_day"], 
-            meal_data["meal_type"],
-            json.dumps(meal_data['meal_name']),
-            json.dumps(meal_data["nutrition"]),
-            json.dumps(meal_data["recipe"]),
-            json.dumps(meal_data["ingredients_used"]),
-            meal_data["img_link"]
-        ))
+        """,
+            (
+                meal_data["user_id"],
+                meal_data["meal_day"],
+                meal_data["meal_type"],
+                json.dumps(meal_data["meal_name"]),
+                json.dumps(meal_data["nutrition"]),
+                json.dumps(meal_data["recipe"]),
+                json.dumps(meal_data["ingredients_used"]),
+                meal_data["img_link"],
+            ),
+        )
         await conn.commit()
 
         user_id = meal_data["user_id"]
@@ -147,17 +177,24 @@ async def add_meal_plan_many(cursor, conn, rows: list[dict]):
     try:
         values = []
         for m in rows:
-            values.append((
-                m["user_id"], m["meal_day"], m["meal_type"],
-                json.dumps(m["meal_name"]),
-                json.dumps(m["nutrition"]),
-                json.dumps(m["recipe"]),
-                json.dumps(m["ingredients_used"])
-            ))
-        await cursor.executemany("""
+            values.append(
+                (
+                    m["user_id"],
+                    m["meal_day"],
+                    m["meal_type"],
+                    json.dumps(m["meal_name"]),
+                    json.dumps(m["nutrition"]),
+                    json.dumps(m["recipe"]),
+                    json.dumps(m["ingredients_used"]),
+                )
+            )
+        await cursor.executemany(
+            """
             INSERT INTO meal_plan (user_id, meal_day, meal_type, meal_name, nutrition, recipe, ingredients_used)
             VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """, values)
+        """,
+            values,
+        )
         await conn.commit()
 
         user_id = m["user_id"]
@@ -173,7 +210,8 @@ async def add_meal_plan_many(cursor, conn, rows: list[dict]):
 # ✅ Change meal by user id and day
 async def change_meal(cursor, conn, user_id: str, meal_data: dict):
     try:
-        await cursor.execute("""
+        await cursor.execute(
+            """
             UPDATE meal_plan 
             SET meal_name=%s, 
                 nutrition=%s, 
@@ -181,16 +219,18 @@ async def change_meal(cursor, conn, user_id: str, meal_data: dict):
                 ingredients_used=%s,
                 img_link=%s
             WHERE user_id=%s AND meal_day=%s AND meal_type=%s
-        """, (
-            meal_data['name'],
-            json.dumps(meal_data["nutrition"]),
-            json.dumps(meal_data["recipe"]),
-            json.dumps(meal_data["ingredients_used"]),
-            meal_data['img_link'],
-            user_id, 
-            meal_data["day"], 
-            meal_data["meal_type"]
-        ))
+        """,
+            (
+                meal_data["name"],
+                json.dumps(meal_data["nutrition"]),
+                json.dumps(meal_data["recipe"]),
+                json.dumps(meal_data["ingredients_used"]),
+                meal_data["img_link"],
+                user_id,
+                meal_data["day"],
+                meal_data["meal_type"],
+            ),
+        )
         await conn.commit()
 
         await clear_user_cache(user_id, "get_meal_plan")
@@ -218,9 +258,253 @@ async def delete_all_meal(cursor, conn, user_id: str):
 
 # ✅ Get meal plan by user
 async def get_meal_plan(cursor, user_id: str):
-    print("🤖")
+    """
+    Fetch all meal plans for a given user.
+    """
     await cursor.execute("SELECT * FROM meal_plan WHERE user_id = %s", (user_id,))
     return await cursor.fetchall()
+
+
+async def get_today_meal(cursor, user_id: str, today: str):
+    """
+    Fetch today's meals (Breakfast, Lunch, Dinner) for the given user.
+    """
+    try:
+        query = """
+            SELECT 
+                ID AS meal_id,
+                meal_name AS food_title,
+                meal_type,
+                meal_day,
+                nutrition AS details,
+                recipe,
+                ingredients_used AS ingredients,
+                img_link AS image,
+                is_checked
+            FROM meal_plan
+            WHERE user_id = %s AND meal_day = %s
+        """
+        await cursor.execute(query, (user_id, today))
+        return await cursor.fetchall()
+    except Exception as e:
+        import traceback
+
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def deduct_ingredient(
+    cursor, conn, user_id: str, ingredient_name: str, deduct_amount: str
+):
+    """
+    ✅ Deducts a given ingredient amount from the user's available groceries.
+
+    Handles unit conversions correctly:
+    - "g" ↔ "kg"
+    - "ml" ↔ "ltr"
+
+    Example: "2 kg Rice" - "500 g" = "1.5 kg"
+
+    Returns:
+    - True if updated
+    - False if ingredient not found
+    """
+    try:
+        query_select = """
+            SELECT available_amount 
+            FROM available_groceries 
+            WHERE user_id = %s AND grocery_name = %s
+        """
+        await cursor.execute(query_select, (user_id, ingredient_name))
+        row = await cursor.fetchone()
+        if not row:
+            return False
+
+        current_amount_str = row["available_amount"]
+
+        # --- Parse amount like "50g" or "1 kg"
+        def parse_amount(amount_str):
+            import re
+
+            match = re.match(r"([\d\.]+)\s*([a-zA-Z]*)", amount_str.strip())
+            if match:
+                value = float(match.group(1))
+                unit = match.group(2).lower()
+                # Normalize gm -> g, l -> ltr
+                if unit in ["gm"]:
+                    unit = "g"
+                if unit in ["l"]:
+                    unit = "ltr"
+                return value, unit
+            raise HTTPException(status_code=400, detail=f"Invalid amount: {amount_str}")
+
+        current_value, current_unit = parse_amount(current_amount_str)
+        deduct_value, deduct_unit = parse_amount(deduct_amount)
+
+        # --- Unit map for base conversions ---
+        unit_map = {
+            "g": ("kg", 0.001),
+            "kg": ("kg", 1),
+            "ml": ("ltr", 0.001),
+            "ltr": ("ltr", 1),
+        }
+
+        if current_unit not in unit_map or deduct_unit not in unit_map:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported unit: {current_unit} or {deduct_unit}",
+            )
+
+        base_current_unit, current_factor = unit_map[current_unit]
+        base_deduct_unit, deduct_factor = unit_map[deduct_unit]
+
+        if base_current_unit != base_deduct_unit:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Incompatible units: {current_unit} vs {deduct_unit}",
+            )
+
+        # --- Convert both to base ---
+        current_value_base = current_value * current_factor
+        deduct_value_base = deduct_value * deduct_factor
+
+        new_value_base = max(current_value_base - deduct_value_base, 0)
+
+        # --- Convert back to display unit ---
+        # Prefer kg/ltr, but if <1, use g/ml
+        if base_current_unit == "kg":
+            if new_value_base >= 1:
+                display_value = round(new_value_base, 2)
+                display_unit = "kg"
+            else:
+                display_value = round(new_value_base * 1000)
+                display_unit = "g"
+        else:  # ltr
+            if new_value_base >= 1:
+                display_value = round(new_value_base, 2)
+                display_unit = "ltr"
+            else:
+                display_value = round(new_value_base * 1000)
+                display_unit = "ml"
+
+        new_amount_str = f"{display_value} {display_unit}"
+
+        print(
+            f"🔽 Deducting {deduct_amount} from {current_amount_str} of {ingredient_name}"
+        )
+        query_update = """
+            UPDATE available_groceries
+            SET available_amount = %s
+            WHERE user_id = %s AND grocery_name = %s
+        """
+        await cursor.execute(query_update, (new_amount_str, user_id, ingredient_name))
+        await conn.commit()
+
+        print(f"✅ {ingredient_name}: {current_amount_str} -> {new_amount_str}")
+        return True
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def add_ingredient(
+    cursor, conn, user_id: str, ingredient_name: str, add_amount: str
+):
+    """
+    Adds a given ingredient amount back to user's available groceries.
+    Handles unit conversions like deduct_ingredient.
+    """
+    try:
+        query_select = """
+            SELECT available_amount 
+            FROM available_groceries 
+            WHERE user_id = %s AND grocery_name = %s
+        """
+        await cursor.execute(query_select, (user_id, ingredient_name))
+        row = await cursor.fetchone()
+        if not row:
+            return False
+
+        current_amount_str = row["available_amount"]
+
+        def parse_amount(amount_str):
+            import re
+
+            match = re.match(r"([\d\.]+)\s*([a-zA-Z]*)", amount_str.strip())
+            if match:
+                value = float(match.group(1))
+                unit = match.group(2).lower()
+                if unit in ["gm"]:
+                    unit = "g"
+                if unit in ["l"]:
+                    unit = "ltr"
+                return value, unit
+            raise HTTPException(status_code=400, detail=f"Invalid amount: {amount_str}")
+
+        current_value, current_unit = parse_amount(current_amount_str)
+        add_value, add_unit = parse_amount(add_amount)
+
+        unit_map = {
+            "g": ("kg", 0.001),
+            "kg": ("kg", 1),
+            "ml": ("ltr", 0.001),
+            "ltr": ("ltr", 1),
+        }
+
+        base_current_unit, current_factor = unit_map[current_unit]
+        base_add_unit, add_factor = unit_map[add_unit]
+
+        if base_current_unit != base_add_unit:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Incompatible units: {current_unit} vs {add_unit}",
+            )
+
+        # ✅ Add instead of subtract
+        new_value_base = current_value * current_factor + add_value * add_factor
+
+        if base_current_unit == "kg":
+            if new_value_base >= 1:
+                display_value = round(new_value_base, 2)
+                display_unit = "kg"
+            else:
+                display_value = round(new_value_base * 1000)
+                display_unit = "g"
+        else:  # ltr
+            if new_value_base >= 1:
+                display_value = round(new_value_base, 2)
+                display_unit = "ltr"
+            else:
+                display_value = round(new_value_base * 1000)
+                display_unit = "ml"
+
+        new_amount_str = f"{display_value} {display_unit}"
+
+        query_update = """
+            UPDATE available_groceries
+            SET available_amount = %s
+            WHERE user_id = %s AND grocery_name = %s
+        """
+        await cursor.execute(query_update, (new_amount_str, user_id, ingredient_name))
+        await conn.commit()
+
+        print(
+            f"✅ {ingredient_name}: {current_amount_str} -> {new_amount_str} (added back)"
+        )
+        return True
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ✅ Delete all health alert by user
@@ -235,16 +519,19 @@ async def delete_all_health_alert(cursor, conn, user_id: str):
     except Exception as e:
         await conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 
 # ✅ Insert health alert by user
 async def insert_health_alert(cursor, conn, user_id: str, alert: dict):
     try:
         alert_json = json.dumps(alert)  # ✅ convert dict → JSON string
-        await cursor.execute("""
+        await cursor.execute(
+            """
             INSERT INTO health_alert (user_id, alert)
             VALUES (%s, %s)
-        """, (user_id, alert_json))
+        """,
+            (user_id, alert_json),
+        )
         await conn.commit()
 
         await clear_user_cache(user_id, "get_health_alert")
@@ -254,13 +541,12 @@ async def insert_health_alert(cursor, conn, user_id: str, alert: dict):
     except Exception as e:
         await conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 
 # ✅ Get health alert by user
 async def get_health_alert(cursor, user_id: str):
     await cursor.execute("SELECT * FROM health_alert WHERE user_id = %s", (user_id,))
     return await cursor.fetchall()
-
 
 
 ##Rifat Edits
@@ -281,10 +567,14 @@ async def get_health_alert(cursor, user_id: str):
 #     except Exception as e:
 #         await conn.rollback()
 #         raise e
-    
+
+
 async def get_available_grocery_ai(cursor, user_id: str):
     print("🤖")
-    await cursor.execute("SELECT grocery_name,available_amount FROM `available_groceries` WHERE user_id=%s", (user_id,))
+    await cursor.execute(
+        "SELECT grocery_name,available_amount FROM `available_groceries` WHERE user_id=%s",
+        (user_id,),
+    )
     return await cursor.fetchall()
 
 
@@ -301,23 +591,36 @@ UNIT_CONVERSIONS = {
     ("pcs", "dozen"): 1 / 12,
 }
 
+
 def normalize_unit(unit: str) -> str:
     """Normalize unit variations into consistent short forms."""
     if not unit:
         return "unit"
     unit = unit.lower().strip()
     mapping = {
-        "liter": "ltr", "litre": "ltr", "liters": "ltr", "litres": "ltr", "l": "ltr",
-        "gram": "g", "grams": "g", "gm": "g",
-        "kgs": "kg", "kilogram": "kg", "kilograms": "kg",
-        "mls": "ml", "milliliter": "ml", "milliliters": "ml",
-        "piece": "pcs", "pieces": "pcs", "pc": "pcs"
+        "liter": "ltr",
+        "litre": "ltr",
+        "liters": "ltr",
+        "litres": "ltr",
+        "l": "ltr",
+        "gram": "g",
+        "grams": "g",
+        "gm": "g",
+        "kgs": "kg",
+        "kilogram": "kg",
+        "kilograms": "kg",
+        "mls": "ml",
+        "milliliter": "ml",
+        "milliliters": "ml",
+        "piece": "pcs",
+        "pieces": "pcs",
+        "pc": "pcs",
     }
     return mapping.get(unit, unit)
 
+
 async def update_or_insert_available_grocery(
-    cursor, conn, user_id, grocery_name,
-    item_quantity, unit_quantity_number, unit_unit
+    cursor, conn, user_id, grocery_name, item_quantity, unit_quantity_number, unit_unit
 ):
     """
     ✅ If grocery exists → update available_amount (replace old unit with AI unit if mismatch).
@@ -329,11 +632,14 @@ async def update_or_insert_available_grocery(
         added_amount = item_quantity * unit_quantity_number  # e.g. 2 × 1.5 = 3 kg
 
         # 🔍 Check if grocery already exists for the user
-        await cursor.execute("""
+        await cursor.execute(
+            """
             SELECT available_amount 
             FROM available_groceries 
             WHERE user_id = %s AND grocery_name = %s
-        """, (user_id, grocery_name))
+        """,
+            (user_id, grocery_name),
+        )
         row = await cursor.fetchone()
 
         if row:
@@ -343,7 +649,9 @@ async def update_or_insert_available_grocery(
 
             # Extract and normalize existing unit
             unit_match = re.search(r"[a-zA-Z]+", existing_text)
-            existing_unit = normalize_unit(unit_match.group() if unit_match else unit_unit)
+            existing_unit = normalize_unit(
+                unit_match.group() if unit_match else unit_unit
+            )
 
             # ⚖️ Handle units
             if existing_unit == unit_unit:
@@ -357,7 +665,9 @@ async def update_or_insert_available_grocery(
                 converted_existing = existing_amount * conversion
                 total = converted_existing + added_amount
                 new_text = f"{total:.2f} {unit_unit}"
-                print(f"🔁 Converted {existing_amount}{existing_unit} → {converted_existing}{unit_unit}")
+                print(
+                    f"🔁 Converted {existing_amount}{existing_unit} → {converted_existing}{unit_unit}"
+                )
 
             elif (unit_unit, existing_unit) in UNIT_CONVERSIONS:
                 # ✅ Convertible in opposite direction
@@ -365,20 +675,27 @@ async def update_or_insert_available_grocery(
                 converted_ai = added_amount * conversion
                 total = existing_amount + converted_ai
                 new_text = f"{total:.2f} {existing_unit}"
-                print(f"🔁 Converted {added_amount}{unit_unit} → {converted_ai}{existing_unit}")
+                print(
+                    f"🔁 Converted {added_amount}{unit_unit} → {converted_ai}{existing_unit}"
+                )
 
             else:
                 # ⚠️ Different & non-convertible → replace with AI's unit
-                print(f"⚠️ Unit mismatch for {grocery_name}: replacing {existing_unit} → {unit_unit}")
+                print(
+                    f"⚠️ Unit mismatch for {grocery_name}: replacing {existing_unit} → {unit_unit}"
+                )
                 new_total = existing_amount + added_amount
                 new_text = f"{new_total} {unit_unit}"
 
             # ✅ Update grocery record
-            await cursor.execute("""
+            await cursor.execute(
+                """
                 UPDATE available_groceries
                 SET available_amount = %s
                 WHERE user_id = %s AND grocery_name = %s
-            """, (new_text, user_id, grocery_name))
+            """,
+                (new_text, user_id, grocery_name),
+            )
             await conn.commit()
 
             print(f"✅ Updated {grocery_name}: {existing_text} → {new_text}")
@@ -386,10 +703,13 @@ async def update_or_insert_available_grocery(
         else:
             # 🆕 Insert new grocery
             new_text = f"{added_amount} {unit_unit}"
-            await cursor.execute("""
+            await cursor.execute(
+                """
                 INSERT INTO available_groceries (user_id, grocery_name, available_amount)
                 VALUES (%s, %s, %s)
-            """, (user_id, grocery_name, new_text))
+            """,
+                (user_id, grocery_name, new_text),
+            )
             await conn.commit()
 
             print(f"🆕 Added new grocery: {grocery_name} = {new_text}")
@@ -398,6 +718,8 @@ async def update_or_insert_available_grocery(
         await conn.rollback()
         print(f"❌ Error updating or inserting grocery '{grocery_name}': {e}")
         raise e
+
+
 # ✅ Store grocery list and its items
 async def store_grocery_list(cursor, conn, user_id, list_name, total_price, items):
     """
@@ -410,10 +732,13 @@ async def store_grocery_list(cursor, conn, user_id, list_name, total_price, item
             raise ValueError("No grocery items provided.")
 
         # 1️⃣ Insert grocery list
-        await cursor.execute("""
+        await cursor.execute(
+            """
             INSERT INTO grocery_list (user_id, list_name, total_price, created_at)
             VALUES (%s, %s, %s, NOW())
-        """, (user_id, list_name, total_price))
+        """,
+            (user_id, list_name, total_price),
+        )
         await conn.commit()
 
         # Get inserted list_id
@@ -428,12 +753,22 @@ async def store_grocery_list(cursor, conn, user_id, list_name, total_price, item
             total_item_price = quantity * price_per_unit
             category = "Uncategorized"
 
-            await cursor.execute("""
+            await cursor.execute(
+                """
                 INSERT INTO grocery_list_items 
                 (list_id, grocery_name, quantity, price_per_unit, total_price, category)
                 VALUES (%s, %s, %s, %s, %s, %s)
-            """, (list_id, full_name, quantity, price_per_unit, total_item_price, category))
-        
+            """,
+                (
+                    list_id,
+                    full_name,
+                    quantity,
+                    price_per_unit,
+                    total_item_price,
+                    category,
+                ),
+            )
+
         await conn.commit()
         print(f"✅ Stored {len(items)} items under grocery list ID {list_id}")
 
@@ -443,6 +778,41 @@ async def store_grocery_list(cursor, conn, user_id, list_name, total_price, item
         await conn.rollback()
         print(f"❌ Error storing grocery list: {e}")
         raise e
+    
+async def record_transaction(cursor, conn, account_ID, description, amount, category_ID, type):
+    """
+    Inserts a new transaction entry for an account.
+    type can be 'DEBIT' or 'CREDIT'
+    """
+    try:
+        await cursor.execute(
+            """
+            INSERT INTO transactions (account_ID, amount, type, description, category_ID, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW())
+            """,
+            (account_ID, amount, type, description, category_ID)
+        )
+
+        # ✅ Update account balance
+        if type.upper() == "DEBIT":
+            await cursor.execute(
+                "UPDATE accounts SET balance = balance - %s WHERE account_ID = %s",
+                (amount, account_ID)
+            )
+        elif type.upper() == "CREDIT":
+            await cursor.execute(
+                "UPDATE accounts SET balance = balance + %s WHERE account_ID = %s",
+                (amount, account_ID)
+            )
+
+        await conn.commit()
+        print(f"💰 Recorded {type} transaction for account {account_ID} of amount {amount}")
+
+    except Exception as e:
+        await conn.rollback()
+        print(f"❌ Error recording transaction: {e}")
+        raise e
+
 
 
 async def get_grocery_dashboard_stats(cursor, user_id):
@@ -459,42 +829,53 @@ async def get_grocery_dashboard_stats(cursor, user_id):
         # Total lists
         await cursor.execute(
             "SELECT COUNT(*) AS total_lists FROM available_groceries WHERE user_id=%s",
-            (user_id,)
+            (user_id,),
         )
         total_lists = (await cursor.fetchone())["total_lists"]
-        
+
         await cursor.execute(
             "SELECT COUNT(*) AS total_lists FROM grocery_list WHERE user_id=%s",
-            (user_id,)
+            (user_id,),
         )
         total_title_lists = (await cursor.fetchone())["total_lists"]
 
         # This month total price
-        await cursor.execute("""
+        await cursor.execute(
+            """
             SELECT COALESCE(SUM(total_price), 0) AS this_month_total
             FROM grocery_list
             WHERE user_id=%s AND MONTH(created_at)=MONTH(CURDATE()) AND YEAR(created_at)=YEAR(CURDATE())
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
         this_month_total = (await cursor.fetchone())["this_month_total"]
 
         # Average per trip
-        avg_per_trip = this_month_total / total_title_lists  if total_title_lists  > 0 else 0
+        avg_per_trip = (
+            this_month_total / total_title_lists if total_title_lists > 0 else 0
+        )
 
         # Success goal: percentage of lists with total_price > 0
-        await cursor.execute("""
+        await cursor.execute(
+            """
             SELECT COALESCE(SUM(total_price), 0) AS food_expense
             FROM grocery_list
             WHERE user_id=%s
               AND MONTH(created_at)=MONTH(CURDATE())
               AND YEAR(created_at)=YEAR(CURDATE())
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
         food_expense = (await cursor.fetchone())["food_expense"]
-                # Food budget limit
-        await cursor.execute("""
+        # Food budget limit
+        await cursor.execute(
+            """
             SELECT limit_amount
             FROM budgets
             WHERE user_id=%s AND category_id=1
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
         row = await cursor.fetchone()
         food_budget = row["limit_amount"] if row else 0
 
@@ -505,12 +886,13 @@ async def get_grocery_dashboard_stats(cursor, user_id):
             "total_lists": total_lists,
             "this_month_total": this_month_total,
             "avg_per_trip": avg_per_trip,
-            "food_expense": percentage
+            "food_expense": percentage,
         }
 
     except Exception as e:
         print(f"❌ Error fetching dashboard stats: {e}")
         raise e
+
 
 async def get_available_groceries(cursor, user_id):
     query = """
@@ -529,42 +911,56 @@ async def update_available_groceries(cursor, conn, user_id, groceries):
         amount = item.get("available_amount")
 
         # Check if record exists
-        await cursor.execute("""
+        await cursor.execute(
+            """
             SELECT COUNT(*) AS count 
             FROM available_groceries 
             WHERE user_id=%s AND ID=%s
-        """, (user_id, ID))
+        """,
+            (user_id, ID),
+        )
         row = await cursor.fetchone()
         exists = row["count"] if row else 0
 
         if exists:
-            await cursor.execute("""
+            await cursor.execute(
+                """
                 UPDATE available_groceries
                 SET grocery_name=%s, available_amount=%s
                 WHERE user_id=%s AND ID=%s
-            """, (name, amount, user_id, ID))
+            """,
+                (name, amount, user_id, ID),
+            )
         else:
-            await cursor.execute("""
+            await cursor.execute(
+                """
                 INSERT INTO available_groceries (user_id, grocery_name, available_amount)
                 VALUES (%s, %s, %s)
-            """, (user_id, name, amount))
+            """,
+                (user_id, name, amount),
+            )
 
     await conn.commit()
     return True
 
+
 async def delete_available_grocery(cursor, conn, user_id, grocery_id):
     try:
-        await cursor.execute("""
+        await cursor.execute(
+            """
             DELETE FROM available_groceries
             WHERE user_id = %s AND ID = %s
-        """, (user_id, grocery_id))
+        """,
+            (user_id, grocery_id),
+        )
         await conn.commit()
         return True
     except Exception as e:
         await conn.rollback()
         print(f"❌ Error deleting grocery: {e}")
         raise e
-    
+
+
 # db.py
 async def fetch_grocery_lists(cursor, conn, user_id: int, filter: str = "all"):
     try:
@@ -602,18 +998,22 @@ async def fetch_grocery_lists(cursor, conn, user_id: int, filter: str = "all"):
         print(f"❌ Error fetching grocery lists: {e}")
         raise e
 
+
 async def fetch_grocery_list_details(cursor, conn, user_id: int, list_id: int):
     """
     Fetches a specific grocery list with its items.
     """
     try:
-        await cursor.execute("""
+        await cursor.execute(
+            """
             SELECT gl.list_id, gl.list_name, gl.total_price, gl.created_at,
                    gli.item_id, gli.grocery_name, gli.quantity, gli.price_per_unit, gli.total_price AS item_total
             FROM grocery_list gl
             LEFT JOIN grocery_list_items gli ON gl.list_id = gli.list_id
             WHERE gl.user_id = %s AND gl.list_id = %s
-        """, (user_id, list_id))
+        """,
+            (user_id, list_id),
+        )
 
         rows = await cursor.fetchall()
         if not rows:
@@ -634,7 +1034,8 @@ async def fetch_grocery_list_details(cursor, conn, user_id: int, list_id: int):
                     "price_per_unit": row["price_per_unit"],
                     "item_total": row["item_total"],
                 }
-                for row in rows if row["item_id"] is not None
+                for row in rows
+                if row["item_id"] is not None
             ],
         }
         return list_data
