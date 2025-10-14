@@ -5,6 +5,9 @@ import { useApi } from "../../utils/api";
 import { RiVideoAiFill } from "react-icons/ri";
 import { FaArrowRightLong } from "react-icons/fa6";
 import { BsStars } from "react-icons/bs";
+import { ToastContainer, toast } from "react-toastify";
+import ProjectCard from './ProjectCard';
+import "react-toastify/dist/ReactToastify.css";
 
 function CareerDashboard() {
     const { makeRequest } = useApi();
@@ -13,6 +16,10 @@ function CareerDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [skillSuggestion, setSkillSuggestion] = useState([]);
+    const [text, setText] = useState("")
+    const [isLoading, setIsLoading] = useState(false)
+    const [errorDialog, setErrorDialog] = useState(null);
+    const [projects, setProjects] = useState([]);
 
     const colorMap = {
         Yellow: "bg-yellow-50 border-yellow-400 text-yellow-800",
@@ -21,6 +28,10 @@ function CareerDashboard() {
         Green: "bg-green-50 border-green-400 text-green-800",
         Purple: "bg-purple-50 border-purple-400 text-purple-800",
     };
+
+    const inProgress = projects.filter(p => p.status === "in_progress");
+    const notStarted = projects.filter(p => p.status === "not_started");
+    const completed = projects.filter(p => p.status === "completed");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -78,9 +89,102 @@ function CareerDashboard() {
             }
         };
 
+        const getProjectIdea = async () => {
+            try {
+                const res = await makeRequest("get-project-idea", { method: "GET" });
+                console.log("API response:", res);
+
+                if (res && Array.isArray(res.project_ideas)) {
+                    // Normalize status to lowercase
+                    const normalized = res.project_ideas.map(p => ({ ...p, status: p.status.toLowerCase() }));
+                    setProjects(normalized);
+                }
+            } catch (err) {
+                console.error("Error fetching projects:", err);
+            }
+        };
+
+
         fetchData();
         getSkillSuggestion();
+        getProjectIdea();
     }, []);
+
+    const handleGenerate = async () => {
+        if (!text.trim()) return;
+
+        try {
+            setIsLoading(true);
+
+            const res = await makeRequest("project-idea-generator", {
+                method: "POST",
+                body: JSON.stringify(text),
+            });
+
+
+            if (res.status === "error") {
+                setErrorDialog(res.reason); // show dialog
+            }
+            else if (res.status === "rate_limit_error") {
+                setErrorDialog(res.reason);
+            }
+            else if (res.status === "success" && res.data) {
+
+                toast.success("A new project idea has been generated", {
+                    position: "bottom-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: false,
+                    progress: undefined,
+                });
+
+                console.log(res.data);
+            }
+
+        } catch (err) {
+            console.error("❌ Error sending request:", err);
+            setErrorDialog("Network error. Please try again.");
+        } finally {
+            setText("");
+            setIsLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async (projectId, newStatus) => {
+        try {
+            const res = await makeRequest(`update-project-status/${projectId}`, {
+                method: "PUT",
+                body: JSON.stringify({ new_status: newStatus }),
+            });
+
+            if (res.status === "success") {
+                // Update frontend immediately
+                setProjects(prev =>
+                    prev.map(p => (p.id === projectId ? { ...p, status: newStatus } : p))
+                );
+            } else {
+                console.error("Update failed:", res);
+            }
+        } catch (err) {
+            console.error("Error updating project status:", err);
+        }
+    };
+
+    const handleDelete = async (projectId) => {
+        try {
+            const res = await makeRequest(`delete-project/${projectId}`, { method: "DELETE" });
+
+            if (res.status === "success") {
+                setProjects(prev => prev.filter(p => p.id !== projectId));
+            } else {
+                console.error("Delete failed:", res);
+            }
+        } catch (err) {
+            console.error("Error deleting project:", err);
+        }
+    };
 
 
     if (loading) {
@@ -95,6 +199,7 @@ function CareerDashboard() {
 
     return (
         <div className="container mx-auto p-8 space-y-8">
+            <ToastContainer />
             <div className="gradient-bg text-light-text dark:text-dark-text rounded-xl">
                 <h1 className="text-4xl font-bold">Your Financial Technology Learning Journey</h1>
                 <p className="mt-2 text-lg">Master the skills needed to build sophisticated financial applications and advance
@@ -317,89 +422,96 @@ function CareerDashboard() {
                         interests, or skills you want to develop:</label>
                     <div className="relative">
                         <textarea
+                            disabled={isLoading}
+                            value={text}
+                            onChange={(e) => setText(e.target.value)}
                             className="w-full p-4 pr-20 border border-primary rounded-lg focus:outline-0 dark:text-dark-text"
                             id="ai-prompt"
-                            placeholder="Example: I want to build a fintech application that helps users track expenses and provides AI-powered savings recommendations. I'm familiar with React but need to learn backend development..."
+                            placeholder="Example: I want to build a fintech application that helps users track expenses and provides AI-powered savings recommendations."
                             rows="3"></textarea>
                     </div>
                 </div>
                 <button
-                    className="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 flex items-center space-x-2">
+                    onClick={handleGenerate}
+                    disabled={isLoading || text.length === 0}
+                    className="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 flex items-center space-x-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer">
                     <span className="material-icons">auto_awesome</span>
-                    <span>Generate Project Ideas</span>
+                    <span className="truncate">{isLoading ? "Generating..." : "Generate Project Ideas"}</span>
                 </button>
 
+                <div>
+                    {/* In Progress Section */}
+                    {projects.filter(p => p.status === "in_progress").length != 0 && (
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-dark-text mt-10">In Progress</h2>
+                    )}
+                    {projects
+                        .filter(p => p.status === "in_progress")
+                        .map((p, idx) => (
+                            <ProjectCard
+                                key={idx}
+                                project={p}
+                                onStatusChange={handleUpdateStatus}
+                                onDeleteChange={handleDelete}
+                                section="in_progress"
+                            />
+                        ))}
 
-                <h2 className="text-xl font-bold text-gray-800 dark:text-dark-text mt-10">AI-Suggested Projects</h2>
-                <div className="bg-white dark:bg-dark-background p-8 rounded-xl shadow-md border border-green-300 mt-5">
-                    <div className="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-dark-text">Smart Budget Tracker with AI Insights</h3>
-                            <p className="text-sm text-gray-500">Perfect for: <span className="font-medium text-indigo-400">Frontend
-                                + Backend + AI Integration</span></p>
+                    {/* Not Started Section */}
+                    
+                    {projects.filter(p => p.status === "not_started").length != 0 && (
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-dark-text mt-10">Not Started</h2>
+                    )}
+                    {projects
+                        .filter(p => p.status === "not_started")
+                        .map((p, idx) => (
+                            <ProjectCard
+                                key={idx}
+                                project={p}
+                                onStatusChange={handleUpdateStatus}
+                                onDeleteChange={handleDelete}
+                                section="not_started"
+                            />
+                        ))}
+
+                    {/* Completed Section */}
+                    
+                    {projects.filter(p => p.status === "completed").length != 0 && (
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-dark-text mt-10">Completed</h2>
+                    )}
+                    {projects
+                        .filter(p => p.status === "completed")
+                        .map((p, idx) => (
+                            <ProjectCard
+                                key={idx}
+                                project={p}
+                                onStatusChange={handleUpdateStatus}
+                                onDeleteChange={handleDelete}
+                                section="completed"
+                            />
+                        ))}
+                </div>
+
+
+
+            </div>
+
+            {/* Error Dialog */}
+            {errorDialog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 transition-opacity duration-300">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 transform transition-transform duration-300 scale-100">
+                        <h2 className="text-lg font-bold mb-4 text-red-600">Error</h2>
+                        <p className="mb-6 text-gray-700">{errorDialog}</p>
+                        <div className="flex justify-end">
+                            <button
+                                onClick={() => setErrorDialog(null)}
+                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                            >
+                                Close
+                            </button>
                         </div>
-                        <span
-                            className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">Recommended</span>
-                    </div>
-                    <p className="text-gray-600 dark:text-dark-text/50 mb-6">Build a comprehensive financial tracking application that categorizes
-                        expenses automatically and provides AI-powered savings recommendations based on spending patterns.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <div>
-                            <h4 className="text-sm font-semibold text-gray-500 dark:text-dark-text/50 mb-2">Tech Stack</h4>
-                            <div className="flex flex-wrap gap-2">
-                                <span
-                                    className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">React.js</span>
-                                <span
-                                    className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Node.js</span>
-                                <span
-                                    className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full">MongoDB</span>
-                                <span
-                                    className="bg-pink-100 text-pink-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Chart.js</span>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-semibold text-gray-500 mb-2">Duration</h4>
-                            <p className="text-gray-800 dark:text-dark-text/50 font-medium">6-8 weeks</p>
-                            <p className="text-xs text-gray-500">~40 hours total</p>
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-semibold text-gray-500 mb-2">Complexity</h4>
-                            <div className="flex items-center">
-                                <span className="material-icons text-yellow-500 text-base">star</span>
-                                <span className="material-icons text-yellow-500 text-base">star</span>
-                                <span className="material-icons text-yellow-500 text-base">star</span>
-                                <span className="material-icons text-gray-300 text-base">star_border</span>
-                                <span className="material-icons text-gray-300 text-base">star_border</span>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">Intermediate</p>
-                        </div>
-                    </div>
-                    <div className="bg-gray-100 p-4 rounded-lg mb-6">
-                        <h4 className="font-semibold text-gray-800 mb-2">Why This Project?</h4>
-                        <p className="text-sm text-gray-600">This project combines essential fintech skills: data visualization,
-                            user authentication, API integration, and machine learning basics. It directly addresses real
-                            market needs in personal finance management and showcases your ability to build full-stack
-                            applications with AI features.</p>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-dark-text/50">
-                            <div className="flex items-center space-x-1"><span
-                                className="material-icons text-green-500 text-base">check_circle</span> <span>Portfolio
-                                    Ready</span></div>
-                            <div className="flex items-center space-x-1"><span
-                                className="material-icons text-green-500 text-base">check_circle</span> <span>Job Market
-                                    Aligned</span></div>
-                            <div className="flex items-center space-x-1"><span
-                                className="material-icons text-green-500 text-base">check_circle</span> <span>Skill
-                                    Building</span></div>
-                        </div>
-                        <button
-                            className="bg-indigo-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-indigo-700">Start
-                            Project</button>
                     </div>
                 </div>
-            </div>
+            )}
 
         </div>
 

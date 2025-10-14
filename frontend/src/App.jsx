@@ -1,6 +1,5 @@
 import ClerkProviderWithRoutes from './auth/ClerkProviderWithRoute'
 import { Layout } from "./layout/Layout"
-import { AuthenticationPage } from "./auth/AuthenticationPage"
 import { Routes, Route, Navigate } from 'react-router-dom'
 import MealPlan from "./pages/FoodPlanning/MealPlane"
 import MealPlanMain from "./pages/FoodPlanning/MealPlanMain"
@@ -27,22 +26,90 @@ import LearningPathLayout from './pages/careerPath/LearningPathLayout'
 import PathDetailsLayout from './pages/careerPath/PathDetailsLayout'
 import AiHelp from './pages/careerPath/AiHelp'
 import CareerSurvey from './pages/careerPath/CareerSurvey'
+import SignInPage from "./auth/SignInPage";
+import SignUpPage from "./auth/SignUpPage";
+import { useState, useEffect } from "react";
+import { useApi } from "./utils/api";
 
+// function ProtectedMealPlan() {
+// 	const isNewUser = false;
+
+// 	if (isNewUser) {
+// 		return <Navigate to="/meal-survey" replace />;
+// 	}
+
+// 	return <MealPlan />;
+// }
+
+// function ProtectedCareerPlan() {
+// 	const isNewUserCareer = false;
+
+// 	if (isNewUserCareer) {
+// 		return <Navigate to="/career-survey" replace />;
+// 	}
+
+// 	return <CareerDashboardLayout />;
+// }
 
 function ProtectedMealPlan() {
-	const isNewUser = false; // fake flag for now
+	const { makeRequest } = useApi();
+	const [loading, setLoading] = useState(true);
+	const [completed, setCompleted] = useState(0);
 
-	if (isNewUser) {
+	useEffect(() => {
+		const fetchMealStatus = async () => {
+			try {
+				const res = await makeRequest("user-survey-status", { method: "GET" });
+				console.log("meal res:", res);
+				setCompleted(res?.meal_survey_completed ?? res?.data?.meal_survey_completed ?? 0);
+			} catch (err) {
+				console.error("Error fetching meal survey status:", err);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchMealStatus();
+	}, [makeRequest]);
+
+	if (loading) return null;
+
+	console.log("Meal Completed:", completed);
+
+	if (completed === 0) {
 		return <Navigate to="/meal-survey" replace />;
 	}
 
 	return <MealPlan />;
 }
 
-function ProtectedCareerPlan() {
-	const isNewUserCareer = false; // fake flag for now
 
-	if (isNewUserCareer) {
+function ProtectedCareerPlan() {
+	const { makeRequest } = useApi();
+	const [loading, setLoading] = useState(true);
+	const [completed, setCompleted] = useState(0);
+
+	useEffect(() => {
+		const fetchCareerStatus = async () => {
+			try {
+				const res = await makeRequest("user-survey-status", { method: "GET" });
+				console.log("career res:", res);
+				// Handle both response shapes
+				setCompleted(res?.career_survey_completed ?? res?.data?.career_survey_completed ?? 0);
+			} catch (err) {
+				console.error("Error fetching career survey status:", err);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchCareerStatus();
+	}, [makeRequest]);
+
+	if (loading) return null; // you can show a spinner instead
+
+	console.log("Career Completed:", completed);
+
+	if (completed === 0) {
 		return <Navigate to="/career-survey" replace />;
 	}
 
@@ -55,8 +122,8 @@ function App() {
 		<ClerkProviderWithRoutes>
 			<Routes>
 				<Route path="/" element={<LandingPage />} />
-				<Route path="/sign-in/*" element={<AuthenticationPage />} />
-				<Route path="/sign-up" element={<AuthenticationPage />} />
+				<Route path="/sign-in/*" element={<SignInPage />} />
+				<Route path="/sign-up/*" element={<SignUpPage />} />
 				<Route element={<Layout />}>
 					<Route path="/dashboard" element={<Dashboard />} />
 					<Route path="/chat" element={<ChatPage />} />   {/* now safe */}
@@ -105,4 +172,4 @@ function App() {
 
 
 
-export default App
+export default App;

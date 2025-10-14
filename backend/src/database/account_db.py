@@ -185,24 +185,53 @@ async def create_transaction(
 
 
 # Fetch aggregated spending by category
-async def get_spending_by_category(cursor, user_id):
+# async def get_spending_by_category(cursor, user_id):
+#     try:
+#         sql = """
+#             SELECT c.category_name, SUM(t.amount) AS total
+#             FROM transactions t
+#             JOIN accounts a ON t.account_ID = a.account_ID
+#             JOIN categories c ON t.category_ID = c.category_ID
+#             WHERE a.user_ID = %s AND t.type = 'DEBIT'
+#             GROUP BY c.category_name
+#             ORDER BY total DESC
+#         """
+#         await cursor.execute(sql, (user_id,))
+#         results = await cursor.fetchall()
+#         return results
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500, detail=f"DB error in get_spending_by_category: {e}"
+#         )
+
+async def get_spending_by_category(cursor, user_id, start_date=None, end_date=None):
     try:
-        sql = """
+        base_sql = """
             SELECT c.category_name, SUM(t.amount) AS total
             FROM transactions t
             JOIN accounts a ON t.account_ID = a.account_ID
             JOIN categories c ON t.category_ID = c.category_ID
             WHERE a.user_ID = %s AND t.type = 'DEBIT'
-            GROUP BY c.category_name
-            ORDER BY total DESC
         """
-        await cursor.execute(sql, (user_id,))
+        params = [user_id]
+
+        # ✅ Use created_at instead of date
+        if start_date:
+            base_sql += " AND t.created_at >= %s"
+            params.append(start_date)
+        if end_date:
+            base_sql += " AND t.created_at <= %s"
+            params.append(end_date)
+
+        base_sql += " GROUP BY c.category_name ORDER BY total DESC"
+
+        await cursor.execute(base_sql, tuple(params))
         results = await cursor.fetchall()
         return results
+
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"DB error in get_spending_by_category: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"DB error in get_spending_by_category: {e}")
+
 
 
 # Get all budgets for a user with actual spending
@@ -243,6 +272,28 @@ async def upsert_budget(cursor, user_id, category_id, limit_amount):
 
 
 # account_db.py
+async def ensure_user_exists(cursor, conn, user_id: str, full_name: str = "Unknown", email: str = "unknown@example.com"):
+    """
+    Check if the user exists in the user table.
+    If not, insert a new user.
+    """
+    try:
+        # Check if user exists
+        await cursor.execute("SELECT user_ID FROM user WHERE user_ID = %s", (user_id,))
+        user_exists = await cursor.fetchone()
+
+        if not user_exists:
+            # Insert new user
+            insert_sql = """
+                INSERT INTO user (user_id)
+                VALUES (%s)
+            """
+            await cursor.execute(insert_sql, (user_id))
+            await conn.commit()
+            print(f"✅ New user added: {user_id}")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DB error in ensure_user_exists: {e}")
 
 
 async def get_total_balance(cursor, user_id):

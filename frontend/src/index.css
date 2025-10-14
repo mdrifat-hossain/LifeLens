@@ -12,7 +12,6 @@ body {
   margin: 0;
   padding: 0;
   font-family: "Plus Jakarta Sans", sans-serif;
-  word-spacing: 2px;
 }
 
 .cl-internal-pe6vm4{
@@ -91,6 +90,17 @@ body {
 
 textarea{
   field-sizing: content;
+}
+
+.auth-container {
+  margin: 2rem auto;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 80px;
 }
 
 /* :root {

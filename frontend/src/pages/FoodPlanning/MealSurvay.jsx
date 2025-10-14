@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BsInfoCircle } from "react-icons/bs";
 import { BsFillInfoCircleFill } from "react-icons/bs";
 import { IoIosClose } from "react-icons/io";
@@ -165,24 +165,7 @@ function MealSurvey() {
         'exercises', 'sleep_duration', 'water_intake', 'medical_conditions', 'specific_diets', 'meal_plan'
     ]
 
-    // const surveyQuestions = [
-    //     {
-    //         question: "What is your gender identity?",
-    //         options: ["Woman", "Man", "Non-binary", "Prefer not to say"],
-    //     },
-    //     {
-    //         question: "What is your height?",
-    //         options: [],
-    //         allowInput: true,
-    //         placeholder: "Enter your height in cm",
-    //     },
-    //     {
-    //         question: "Do you have any dietary restrictions?",
-    //         options: ["None", "Vegetarian", "Vegan", "Gluten-free", "Other"],
-    //         allowInput: true, // allow custom input when "Other" is selected
-    //         placeholder: "Enter your dietary restriction",
-    //     },
-    // ];
+
 
     const { makeRequest } = useApi();
     const { darkMode } = useTheme();
@@ -210,6 +193,49 @@ function MealSurvey() {
             return next;
         });
     };
+
+    useEffect(() => {
+        fetchSurveyAnswers();
+    }, []);
+
+    const fetchSurveyAnswers = async () => {
+        setIsLoading(true);
+
+        try {
+            const res = await makeRequest("get-foodPlanning-survey");
+            if (res.status === "success" && res.data?.length > 0) {
+                const userData = res.data[0];
+
+                const prefilled = keywords.map((key, i) => {
+                    const question = surveyQuestions[i];
+                    const answerValue = userData[key];
+
+                    if (
+                        question.options?.some(
+                            (opt) => String(opt).trim() === String(answerValue).trim()
+                        )
+                    ) {
+                        return { value: String(answerValue), custom: "" };
+                    }
+
+                    if (answerValue && question.allowInput) {
+                        return { value: "Other", custom: String(answerValue) };
+                    }
+
+                    return { value: null, custom: "" };
+                });
+
+                setAnswers(prefilled);
+                setCurrent(0);
+            }
+        } catch (err) {
+            console.error("❌ Error fetching survey answers:", err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+
 
     const submitSurvey = async () => {
         setIsLoading(true);

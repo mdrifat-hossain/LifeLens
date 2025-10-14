@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { BsInfoCircle } from "react-icons/bs";
 import { BsFillInfoCircleFill } from "react-icons/bs";
 import { IoIosClose } from "react-icons/io";
@@ -18,13 +18,6 @@ grid.register();
 function CareerSurvey() {
     const { darkMode } = useTheme();
     const surveyQuestions = [
-        {
-            question: "Where are you currently located?",
-            type: "text",
-            options: [],
-            allowInput: true,
-            placeholder: "Enter your city and country",
-        },
         {
             question: "Do you prefer remote, hybrid, or onsite work?",
             type: "select",
@@ -184,7 +177,7 @@ function CareerSurvey() {
     ];
 
 
-    const keywords = ['current_user_location', 'job_type', 'preferred_working_country', 'preferred_industry', 'preferred_job_roles', 'career_goal', 'preferred_career', 'preferred_field_or_domain', 'preferred_work_activity', 'industry_to_work_for', 'skill_to_develop']
+    const keywords = ['job_type', 'preferred_working_country', 'preferred_industry', 'preferred_job_roles', 'career_goal', 'preferred_career', 'preferred_field_or_domain', 'preferred_work_activity', 'industry_to_work_for', 'skill_to_develop']
 
     const { makeRequest } = useApi();
     const [current, setCurrent] = useState(0);
@@ -211,6 +204,90 @@ function CareerSurvey() {
             return next;
         });
     };
+
+    useEffect(() => {
+        fetchSurveyAnswers();
+    }, []);
+
+    const fetchSurveyAnswers = async () => {
+        setIsLoading(true);
+
+        try {
+            const res = await makeRequest("get-career-survey-answer");
+            if (res.status === "success" && res.data) {
+                const userData = res.data;
+
+                const prefilled = keywords.map((key, i) => {
+                    const question = surveyQuestions[i];
+                    const answerValue = userData[key];
+
+                    // Skip if no value
+                    if (answerValue == null) return { value: null, custom: "" };
+
+                    // Handle multi-country (array of country codes)
+                    if (question.type === "multi-country") {
+                        if (Array.isArray(answerValue)) {
+                            return { value: answerValue };
+                        }
+                        return { value: [answerValue] };
+                    }
+
+                    // Handle multi-select questions
+                    if (question.type === "multi-select") {
+                        if (Array.isArray(answerValue)) {
+                            const recognized = [];
+                            let custom = "";
+
+                            answerValue.forEach((val) => {
+                                if (
+                                    question.options?.some(
+                                        (opt) => String(opt).trim() === String(val).trim()
+                                    )
+                                ) {
+                                    recognized.push(val);
+                                } else if (question.allowInput) {
+                                    recognized.push("Other");
+                                    custom = val; // Store unrecognized value as custom input
+                                }
+                            });
+
+                            return { value: recognized, custom };
+                        }
+                    }
+
+                    // Handle single-select questions
+                    if (question.type === "select") {
+                        if (
+                            question.options?.some(
+                                (opt) => String(opt).trim() === String(answerValue).trim()
+                            )
+                        ) {
+                            return { value: String(answerValue), custom: "" };
+                        }
+                        if (question.allowInput) {
+                            return { value: "Other", custom: String(answerValue) };
+                        }
+                    }
+
+                    // Handle free-text answers
+                    if (question.type === "text") {
+                        return { value: String(answerValue), custom: String(answerValue) };
+                    }
+
+                    return { value: null, custom: "" };
+                });
+
+                setAnswers(prefilled);
+                setCurrent(0);
+            }
+        } catch (err) {
+            console.error("❌ Error fetching survey answers:", err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+
 
     const submitSurvey = async () => {
         setIsLoading(true);

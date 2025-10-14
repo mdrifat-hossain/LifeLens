@@ -10,22 +10,21 @@ from ..database import career_planning_db
 import time, json
 from ..database.redis_db import redis_db_services
 from ..ai_generator.industry_trend import ai_generator
-from ..ai_generator.ai_skill_suggestion import ai_skill_generator 
+from ..ai_generator.ai_skill_suggestion import ai_skill_generator
+from ..routes import throttling
 import aiohttp
 
 router = APIRouter()
+
 
 class SurveyAnswer(BaseModel):
     question: str
     answer: Union[str, List[str], None] = None
 
-    
 
-@router.post('/career_survey')
+@router.post("/career_survey")
 async def storing_career_survey(
-    input: List[SurveyAnswer],
-    request_obj: Request = None,
-    db_dep=Depends(get_db)
+    input: List[SurveyAnswer], request_obj: Request = None, db_dep=Depends(get_db)
 ):
 
     try:
@@ -36,22 +35,26 @@ async def storing_career_survey(
         await career_planning_db.delete_old_career_planning_info(cursor, conn, user_id)
 
         # Convert list of Q/A → dict
-        survey_data = {ans.question.lower().replace(" ", "_"): ans.answer for ans in input}
+        survey_data = {
+            ans.question.lower().replace(" ", "_"): ans.answer for ans in input
+        }
 
-        await career_planning_db.store_users_career_planning_info(cursor, conn, user_id, survey_data)
-        
+        await career_planning_db.store_users_career_planning_info(
+            cursor, conn, user_id, survey_data
+        )
+
+        await industry_trend_generator(request=request_obj, db_dep=db_dep)
+
         return {"status": "success"}
 
     except Exception as e:
         print("Error in storing information to database:", str(e))
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
-    
+
 
 @router.post("/industry-trend-generator")
-async def industry_trend_generator(
-    request: Request = None, db_dep=Depends(get_db)
-):
+async def industry_trend_generator(request: Request = None, db_dep=Depends(get_db)):
     try:
         cursor, conn = db_dep
         user_details = authenticate_and_get_user_details(request)
@@ -59,25 +62,27 @@ async def industry_trend_generator(
 
         await career_planning_db.delete_old_industry_trends(cursor, conn, user_id)
 
-        record = await career_planning_db.get_users_career_planning_info(cursor, user_id)
+        record = await career_planning_db.get_users_career_planning_info(
+            cursor, user_id
+        )
 
         result = await ai_generator.generate_career_insights(record)
 
         # await career_planning_db.insert_industry_trends(cursor, conn, user_id, result)
-        await career_planning_db.insert_industry_trends(cursor, conn, user_id, result["career_insights"])
+        await career_planning_db.insert_industry_trends(
+            cursor, conn, user_id, result["career_insights"]
+        )
 
-        return {"status": "success", "result":result}
-    
+        return {"status": "success", "result": result}
+
     except Exception as e:
         print(str(e))
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
-    
+
 
 @router.get("/get-industry-trends")
-async def fetch_industry_trends(
-    request: Request, db_dep=Depends(get_db)
-):
+async def fetch_industry_trends(request: Request, db_dep=Depends(get_db)):
     try:
         cursor, conn = db_dep
         user_details = authenticate_and_get_user_details(request)
@@ -86,20 +91,22 @@ async def fetch_industry_trends(
         record = await career_planning_db.get_industry_trends_combined(cursor, user_id)
 
         if not record:
-            return {"status": "empty", "message": "No industry trends found for this user"}
+            return {
+                "status": "empty",
+                "message": "No industry trends found for this user",
+            }
 
         return {"status": "success", "result": record}
-    
+
     except Exception as e:
         print(str(e))
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
-    
-
 
 
 NEWS_API_KEY = "pub_c9fd0cd14c2144babbe20edc0842e4a0"
 NEWS_API_URL = "https://newsdata.io/api/1/news"
+
 
 async def fetch_news_from_api(career_field: str):
     query = career_field.replace(" ", "+")  # encode spaces for URL
@@ -115,25 +122,33 @@ async def fetch_news_from_api(career_field: str):
                     "title": article.get("title"),
                     "description": article.get("description"),
                     "url": article.get("link"),
-                    "published_at": article.get("pubDate")
+                    "published_at": article.get("pubDate"),
                 }
                 for article in data.get("results", [])[:5]
             ]
 
+
 @router.get("/news")
-async def get_industry_news(request: Request, career_field: str  = Query(..., description="Career field to fetch news for"), db=Depends(get_db)):
+async def get_industry_news(
+    request: Request,
+    career_field: str = Query(..., description="Career field to fetch news for"),
+    db=Depends(get_db),
+):
     cursor, conn = db
     user_details = authenticate_and_get_user_details(request)
     user_id = user_details.get("user_id")
 
     # 1. Check if news is fresh in DB (last 24 hours)
-    await cursor.execute("""
+    await cursor.execute(
+        """
         SELECT title, description, url, published_at
         FROM industry_news
         WHERE career_field = %s
         AND stored_at >= NOW() - INTERVAL 1 DAY
         LIMIT 5
-    """, (career_field,))
+    """,
+        (career_field,),
+    )
     existing_news = await cursor.fetchall()
 
     if existing_news and len(existing_news) > 0:
@@ -143,25 +158,29 @@ async def get_industry_news(request: Request, career_field: str  = Query(..., de
     fresh_news = await fetch_news_from_api(career_field)
 
     # 3. Delete old news for this career field
-    await cursor.execute("DELETE FROM industry_news WHERE career_field = %s", (career_field,))
+    await cursor.execute(
+        "DELETE FROM industry_news WHERE career_field = %s", (career_field,)
+    )
     await conn.commit()
 
     # 4. Insert new ones
     for article in fresh_news:
-        await cursor.execute("""
+        await cursor.execute(
+            """
             INSERT INTO industry_news (career_field, title, description, url, published_at)
             VALUES (%s, %s, %s, %s, %s)
-        """, (
-            career_field,
-            article["title"],
-            article["description"],
-            article["url"],
-            article["published_at"]
-        ))
+        """,
+            (
+                career_field,
+                article["title"],
+                article["description"],
+                article["url"],
+                article["published_at"],
+            ),
+        )
     await conn.commit()
 
     return {"source": "api", "news": fresh_news}
-
 
 
 @router.get("/skill-suggestion")
@@ -181,7 +200,9 @@ async def skill_suggestion(request: Request = None, db_dep=Depends(get_db)):
         today_user = datetime.now(user_tz).date()
 
         # ✅ 1. Check if monthly suggestion already exists
-        existing_record = await career_planning_db.get_skill_suggestions(cursor, user_id, today_user)
+        existing_record = await career_planning_db.get_skill_suggestions(
+            cursor, user_id, today_user
+        )
 
         if existing_record:
             return {
@@ -191,10 +212,14 @@ async def skill_suggestion(request: Request = None, db_dep=Depends(get_db)):
             }
 
         # ✅ 2. Fetch latest career planning info
-        user_info = await career_planning_db.get_users_career_planning_info(cursor, user_id)
+        user_info = await career_planning_db.get_users_career_planning_info(
+            cursor, user_id
+        )
 
         if not user_info:
-            raise HTTPException(status_code=404, detail="Career planning info not found")
+            raise HTTPException(
+                status_code=404, detail="Career planning info not found"
+            )
 
         # ✅ 3. Generate AI-based skill suggestion
         result = await ai_skill_generator.suggestion_generator(user_info)
@@ -202,7 +227,9 @@ async def skill_suggestion(request: Request = None, db_dep=Depends(get_db)):
 
         # ✅ 4. Delete old and insert new
         await career_planning_db.delete_all_skill_suggestion(cursor, conn, user_id)
-        await career_planning_db.insert_skill_suggestion(cursor, conn, user_id, suggestion_dict, today_user)
+        await career_planning_db.insert_skill_suggestion(
+            cursor, conn, user_id, suggestion_dict, today_user
+        )
 
         return {
             "status": "success",
@@ -213,4 +240,112 @@ async def skill_suggestion(request: Request = None, db_dep=Depends(get_db)):
     except Exception as e:
         print(traceback.format_exc())
         await conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@router.post("/project-idea-generator")
+async def project_idea_generator(
+    query: str = Body(..., embed=False), request: Request = None, db_dep=Depends(get_db)
+):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details.get("user_id")
+
+        # await throttling.apply_rate_limit(user_id, cursor, conn)
+
+        validation_result = await ai_skill_generator.project_idea_query_validator(query)
+
+        validation_dict = validation_result.dict()  # pydantic to Dict
+
+        status = validation_dict["status"]
+        reason = validation_dict["reason"]
+
+        if status == "valid":
+
+            project_idea = await ai_skill_generator.project_idea_generator(query)
+            project_idea = project_idea.dict()
+
+            await career_planning_db.insert_project_idea(
+                cursor, conn, user_id, project_idea
+            )
+            project_ideas = await career_planning_db.get_all_project_ideas(cursor, user_id)
+
+            return {
+                "status": "success",
+                "project_ideas": project_ideas,
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Project generation request is invalid.",
+                "reason": reason,
+            }
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print("Caught exception:", type(e), e)
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@router.get("/get-project-idea")
+async def get_project_idea(request: Request = None, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details.get("user_id")
+
+        project_ideas = await career_planning_db.get_all_project_ideas(cursor, user_id)
+
+        return {
+            "status": "success",
+            "project_ideas": project_ideas,
+        }
+
+    except Exception as e:
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@router.put("/update-project-status/{project_id}")
+async def update_status(
+    project_id: int, data: dict, request: Request, db_dep=Depends(get_db)
+):
+    cursor, conn = db_dep
+    user_details = authenticate_and_get_user_details(request)
+    user_id = user_details.get("user_id")
+
+    new_status = data.get("new_status")
+    return await career_planning_db.update_project_status(
+        cursor, conn, user_id, project_id, new_status
+    )
+
+
+@router.delete("/delete-project/{project_id}")
+async def delete_project(project_id: int, request: Request, db_dep=Depends(get_db)):
+    cursor, conn = db_dep
+    user_details = authenticate_and_get_user_details(request)
+    user_id = user_details.get("user_id")
+
+    return await career_planning_db.delete_project(cursor, conn, user_id, project_id)
+
+
+@router.get("/get-career-survey-answer")
+async def get_career_survey_answer(request: Request = None, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details.get("user_id")
+
+        record = await career_planning_db.get_users_career_planning_info(
+            cursor, user_id
+        )
+
+        return {"status": "success", "data": record}
+
+    except Exception as e:
+        print(str(e))
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

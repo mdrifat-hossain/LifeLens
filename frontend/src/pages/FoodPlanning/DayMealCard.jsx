@@ -39,13 +39,12 @@ function DayMealCard({ title, details, image, ingredients, recipe }) {
                     {Array.isArray(parsedIngredients) && parsedIngredients.length > 0 ? (
                         <div className="space-y-2">
                             <h3 className="text-lg font-semibold text-gray-800 dark:text-dark-text/90">
-                                Ingredient needs
+                                Ingredients
                             </h3>
                             <ol className="list-decimal list-inside space-y-1 text-gray-700 dark:text-dark-text/70">
                                 {parsedIngredients.map((item, idx) => (
                                     <li key={idx}>
-                                        {item.name} – {item.amount_used} 
-                                        {/* (remaining: {item.remaining}) */}
+                                        {item.name} – {item.amount_used} (remaining: {item.remaining})
                                     </li>
                                 ))}
                             </ol>
