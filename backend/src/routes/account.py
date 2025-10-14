@@ -4,7 +4,7 @@ from ..database import account_db
 from ..utils import authenticate_and_get_user_details
 from ..ai_generator.ai_finance import ai_generator
 from zoneinfo import ZoneInfo
-from datetime import datetime
+from datetime import datetime, timedelta
 import traceback
 
 router = APIRouter()
@@ -185,19 +185,50 @@ async def add_transaction(request_obj: Request, body: TransactionCreate, db_dep=
         raise HTTPException(status_code=500, detail=f"Internal error in add_transaction: {str(e)}")
 
 
+# @router.get("/get-spending-by-category")
+# async def get_spending_by_category_route(request_obj: Request, db_dep=Depends(get_db)):
+#     try:
+#         cursor, conn = db_dep
+#         user_details = authenticate_and_get_user_details(request_obj)
+#         user_id = user_details["user_id"]
+
+#         spending = await account_db.get_spending_by_category(cursor, user_id)
+#         return {"spending": spending}
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Internal error in get_spending_by_category: {str(e)}")
 @router.get("/get-spending-by-category")
-async def get_spending_by_category_route(request_obj: Request, db_dep=Depends(get_db)):
+async def get_spending_by_category_route(
+    request_obj: Request,
+    period: str = "this_month",
+    db_dep=Depends(get_db)
+):
     try:
         cursor, conn = db_dep
         user_details = authenticate_and_get_user_details(request_obj)
         user_id = user_details["user_id"]
 
-        spending = await account_db.get_spending_by_category(cursor, user_id)
+        # Calculate date filter based on period
+        today = datetime.today()
+        start_date = None
+        end_date = today
+
+        if period == "this_month":
+            start_date = today.replace(day=1)
+        elif period == "last_month":
+            first_day_this_month = today.replace(day=1)
+            end_date = first_day_this_month - timedelta(days=1)
+            start_date = end_date.replace(day=1)
+        else:  # 'all'
+            start_date = None  # no date filter
+
+        spending = await account_db.get_spending_by_category(cursor, user_id, start_date, end_date)
         return {"spending": spending}
 
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Internal error in get_spending_by_category: {str(e)}")
-
 
 @router.get("/get-budgets")
 async def get_budgets(request_obj: Request, db_dep=Depends(get_db)):
@@ -241,6 +272,9 @@ async def get_dashboard_metrics(request_obj: Request, db_dep=Depends(get_db)):
         cursor, conn = db_dep
         user_details = authenticate_and_get_user_details(request_obj)
         user_id = user_details["user_id"]
+        
+        #✅ Ensure user exists in DB
+        await account_db.ensure_user_exists(cursor, conn, user_id)
 
         # Call DB functions
         total_balance = await account_db.get_total_balance(cursor, user_id)

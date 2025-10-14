@@ -272,10 +272,53 @@ function ProductSearch() {
     // };
 
     const handleAddToMainList = async () => {
+        // const trimmedListName = listName.trim();
+        // if (!trimmedListName) return alert("Please enter a list name");
+        // if (!selectedAccount) return alert("Please choose an account");
+        // if (trimmedListName.length > 30) return alert("List name cannot exceed 30 characters");
         const trimmedListName = listName.trim();
-        if (!trimmedListName) return alert("Please enter a list name");
-        if (!selectedAccount) return alert("Please choose an account");
-        if (trimmedListName.length > 30) return alert("List name cannot exceed 30 characters");
+
+        // ✅ Validate list name empty
+        if (!trimmedListName) {
+            toast.warning("Please enter a list name.", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
+            return;
+        }
+
+        // ✅ Validate account selection
+        if (!selectedAccount) {
+            toast.warning("Please choose an account.", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
+            return;
+        }
+
+        // ✅ Validate list name length
+        if (trimmedListName.length > 30) {
+            toast.warning("List name cannot exceed 30 characters.", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
+            return;
+        }
 
         const totalPrice = shoppingList.reduce(
             (sum, item) => sum + (parseFloat(item.discounted_price || item.original_price) * item.quantity),
@@ -286,24 +329,37 @@ function ProductSearch() {
             selectedAccount.includes(acc.account_name)
         );
 
-        // 🛑 If no matching account is found, show error and stop
+        //If no matching account is found, show error and stop
+        // if (!selectedAcc) {
+        //     alert("⚠️ Please select a valid account before saving your grocery list!");
+        //     return; // stop further execution
+        // }
         if (!selectedAcc) {
-            alert("⚠️ Please select a valid account before saving your grocery list!");
+            toast.warning("⚠️ Please select a valid account before saving your grocery list!", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
             return; // stop further execution
         }
-        console.log("Selected Account:", selectedAcc); // ✅ should log the correct account object
+
+        console.log("Selected Account:", selectedAcc); //should log the correct account object
 
         const payload = {
             list_name: trimmedListName,
             total_price: parseFloat(totalPrice.toFixed(2)),
-            account_ID: parseInt(selectedAcc.account_id), // ✅ force int
+            account_ID: parseInt(selectedAcc.account_id), // force int
             items: shoppingList.map(item => ({
                 name: item.name,
-                quantity: Number(item.quantity),             // ✅ ensure int
+                quantity: Number(item.quantity),             //ensure int
                 price: parseFloat(item.discounted_price || item.original_price),
             })),
         };
-        console.log("Payload to send:", payload); // ✅ verify payload structure
+        // console.log("Payload to send:", payload); 
 
 
         try {
@@ -588,6 +644,7 @@ function ProductSearch() {
                                 Shopping List
                             </h2>
                             <input
+                                id='listName'
                                 type="text"
                                 placeholder="List name..."
                                 className="ml-2 border rounded px-2 py-1 text-sm border-accent/50 dark:text-dark-text"
@@ -678,7 +735,7 @@ function ProductSearch() {
                         </div>
 
 
-                        <button
+                        <button id='addListButton'
                             className="w-full bg-primary text-light-text font-semibold py-3 rounded-lg flex items-center justify-center hover:bg-primary/80 cursor-pointer"
                             onClick={handleAddToMainList}
                         >

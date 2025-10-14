@@ -226,20 +226,45 @@ function GroceryList() {
     }, [filter]);
 
     // ✅ Fetch all grocery lists
+    // const fetchGroceryLists = async () => {
+    //     try {
+    //         const data = await makeRequest(`grocery-lists?filter=${filter}`, { method: "GET" });
+
+    //         // 🛠 Ensure data is always an array
+    //         const dataArray = Array.isArray(data) ? data : [];
+    //         console.log("✅ Fetched grocery lists:", dataArray);
+
+    //         setLists(dataArray);
+
+    //         // 🧮 Calculate summary
+    //         const totalSpent = dataArray.reduce((sum, l) => sum + parseFloat(l.total_price || 0), 0);
+    //         const moneySaved = dataArray.reduce((sum, l) => sum + parseFloat(l.money_saved || 0), 0);
+    //         const completedLists = dataArray.length;
+
+    //         setSummary({ totalSpent, completedLists, moneySaved });
+    //     } catch (err) {
+    //         console.error("❌ Error fetching grocery lists:", err);
+    //         setLists([]);
+    //         setSummary({ totalSpent: 0, completedLists: 0, moneySaved: 0 });
+    //     }
+    // };
+
+    // ✅ View individual grocery list details (receipt)
     const fetchGroceryLists = async () => {
         try {
             const data = await makeRequest(`grocery-lists?filter=${filter}`, { method: "GET" });
 
-            // 🛠 Ensure data is always an array
-            const dataArray = Array.isArray(data) ? data : [];
-            console.log("✅ Fetched grocery lists:", dataArray);
+            // 🛠 Ensure data.lists is always an array
+            const dataArray = Array.isArray(data.lists) ? data.lists : [];
+            const budget = parseFloat(data.budget || 0);
+            console.log("✅ Fetched grocery lists:", dataArray, "Budget:", budget);
 
             setLists(dataArray);
 
             // 🧮 Calculate summary
             const totalSpent = dataArray.reduce((sum, l) => sum + parseFloat(l.total_price || 0), 0);
-            const moneySaved = dataArray.reduce((sum, l) => sum + parseFloat(l.money_saved || 0), 0);
             const completedLists = dataArray.length;
+            const moneySaved = Math.max(budget - totalSpent, 0); // ✅ now correct per period
 
             setSummary({ totalSpent, completedLists, moneySaved });
         } catch (err) {
@@ -249,7 +274,7 @@ function GroceryList() {
         }
     };
 
-    // ✅ View individual grocery list details (receipt)
+
     const handleViewReceipt = async (list_id) => {
         try {
             const data = await makeRequest(`grocery-list/${list_id}`, { method: "GET" });
@@ -315,7 +340,7 @@ function GroceryList() {
                     </div>
                 </div>
 
-                <div className="bg-accent p-4 rounded-xl shadow-sm flex items-center justify-between">
+                {/* <div className="bg-accent p-4 rounded-xl shadow-sm flex items-center justify-between">
                     <div>
                         <p className="text-sm text-dark-text">Limit Remains</p>
                         <p className="text-2xl font-bold text-gray-900">{stats.food_expense}%</p>
@@ -323,7 +348,34 @@ function GroceryList() {
                     <div className="bg-purple-100 text-purple-600 p-3 rounded-lg">
                         <MdOutlineProductionQuantityLimits className="w-6 h-6 text-purple-800" />
                     </div>
+                </div> */}
+                <div
+                    className={`p-4 rounded-xl shadow-sm flex items-center justify-between transition-all duration-300 
+    ${stats.food_expense <= 0
+                            ? "bg-red-100 text-red-700" // 🔴 Over budget (negative)
+                            : stats.food_expense <= 20
+                                ? "bg-yellow-100 text-yellow-700" // 🟡 Very low (0–20%)
+                                : "bg-accent text-dark-text" // 🟢 Normal range
+                        }`}
+                >
+                    <div>
+                        <p className="text-sm">Limit Remains</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                            {stats.food_expense}%
+                        </p>
+                    </div>
+                    <div
+                        className={`p-3 rounded-lg ${stats.food_expense <= 0
+                                ? "bg-red-200 text-red-800"
+                                : stats.food_expense <= 20
+                                    ? "bg-yellow-200 text-yellow-800"
+                                    : "bg-purple-100 text-purple-800"
+                            }`}
+                    >
+                        <MdOutlineProductionQuantityLimits className="w-6 h-6" />
+                    </div>
                 </div>
+
             </div>
             {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8 flex items-start">
                 <div className="bg-blue-100 text-blue-600 p-2 rounded-full mr-4">
@@ -593,9 +645,12 @@ function GroceryList() {
                             {/* ✅ Top section: icon, info, and total */}
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center">
-                                    <div
+                                    {/* <div
                                         className={`p-3 rounded-lg mr-4 ${list.money_saved >= 0 ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
                                             }`}
+                                    > */}
+                                    <div
+                                        className={"p-3 rounded-lg mr-4 bg-green-100 text-green-600"}
                                     >
                                         {list.list_name.toLowerCase().includes("dinner") ? (
                                             <IoRestaurantSharp className="w-6 h-6 text-blue-800" />
@@ -608,14 +663,14 @@ function GroceryList() {
                                         <p className="text-sm text-gray-500">
                                             {new Date(list.created_at).toLocaleDateString()} • {list.items_count} items
                                         </p>
-                                        <p
+                                        {/* <p
                                             className={`text-sm ${list.money_saved >= 0 ? "text-green-600" : "text-red-500"
                                                 }`}
                                         >
                                             {list.money_saved >= 0
                                                 ? `Saved ৳${list.money_saved.toFixed(2)}`
                                                 : `৳${Math.abs(list.money_saved).toFixed(2)} over budget`}
-                                        </p>
+                                        </p> */}
                                     </div>
                                 </div>
 
@@ -644,7 +699,7 @@ function GroceryList() {
 
 
 
-                            {/* ✅ Expandable receipt area (below button) */}
+                            {/*Expandable receipt area (below button) */}
                             <div
                                 className={`overflow-hidden transition-all duration-500 ease-in-out ${selectedList && selectedList.list_id === list.list_id
                                     ? "max-h-[500px] opacity-100 mt-3"

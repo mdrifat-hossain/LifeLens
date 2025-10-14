@@ -16,17 +16,82 @@ import { FaLightbulb } from "react-icons/fa";
 import { FaArrowTrendUp } from "react-icons/fa6";
 import { MdReport } from "react-icons/md";
 import { IoMdAdd } from "react-icons/io";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function FinancialDashboard() {
 
     const { makeRequest } = useApi();
 
+    // useEffect(() => {
+    //     const fetchData = async () => {
+    //         try {
+    //             const res = await makeRequest("get-spending-by-category", { method: "GET" });
+
+    //             // Assign colors manually for consistency
+    //             const categoryColors = {
+    //                 "Food & Dining": "#ef4444",
+    //                 "Transportation": "#3b82f6",
+    //                 "Shopping": "#8b5cf6",
+    //                 "Entertainment": "#10b981",
+    //                 "Utilities": "#f97316",
+    //                 "Other": "#abdbe3",
+    //             };
+
+    //             const chartData = res.spending.map((item) => ({
+    //                 name: item.category_name,
+    //                 y: Number(item.total),
+    //                 color: categoryColors[item.category_name] || "#ccc",
+    //             }));
+
+    //             Highcharts.chart("pie-chart", {
+    //                 chart: {
+    //                     type: "pie",
+    //                     backgroundColor: "#4b8673",
+    //                 },
+    //                 title: { text: "" },
+    //                 tooltip: { pointFormat: "{series.name}: <b>৳{point.y}</b>" },
+    //                 plotOptions: {
+    //                     pie: {
+    //                         allowPointSelect: true,
+    //                         cursor: "pointer",
+    //                         dataLabels: { enabled: false },
+    //                         showInLegend: true,
+    //                     },
+    //                 },
+    //                 legend: {
+    //                     layout: "horizontal",
+    //                     align: "center",
+    //                     verticalAlign: "bottom",
+    //                     itemStyle: {
+    //                         color: "#ffffff",
+    //                         fontWeight: "bold",
+    //                     },
+    //                 },
+    //                 credits: { enabled: false },
+    //                 series: [
+    //                     {
+    //                         name: "Spending",
+    //                         colorByPoint: true,
+    //                         data: chartData,
+    //                     },
+    //                 ],
+    //             });
+    //         } catch (err) {
+    //             console.error("Error loading spending chart:", err);
+    //         }
+    //     };
+
+    //     fetchData();
+    // }, []);
+
+    const [period, setPeriod] = useState("this_month");
+
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await makeRequest("get-spending-by-category", { method: "GET" });
+                const res = await makeRequest(`get-spending-by-category?period=${period}`, { method: "GET" });
 
-                // Assign colors manually for consistency
                 const categoryColors = {
                     "Food & Dining": "#ef4444",
                     "Transportation": "#3b82f6",
@@ -35,6 +100,7 @@ function FinancialDashboard() {
                     "Utilities": "#f97316",
                     "Other": "#abdbe3",
                 };
+                console.log("Response from backend:", res);
 
                 const chartData = res.spending.map((item) => ({
                     name: item.category_name,
@@ -43,12 +109,9 @@ function FinancialDashboard() {
                 }));
 
                 Highcharts.chart("pie-chart", {
-                    chart: {
-                        type: "pie",
-                        backgroundColor: "#4b8673",
-                    },
+                    chart: { type: "pie", backgroundColor: "#4b8673" },
                     title: { text: "" },
-                    tooltip: { pointFormat: "{series.name}: <b>${point.y}</b>" },
+                    tooltip: { pointFormat: "{series.name}: <b>৳{point.y}</b>" },
                     plotOptions: {
                         pie: {
                             allowPointSelect: true,
@@ -61,19 +124,10 @@ function FinancialDashboard() {
                         layout: "horizontal",
                         align: "center",
                         verticalAlign: "bottom",
-                        itemStyle: {
-                            color: "#ffffff",
-                            fontWeight: "bold",
-                        },
+                        itemStyle: { color: "#ffffff", fontWeight: "bold" },
                     },
                     credits: { enabled: false },
-                    series: [
-                        {
-                            name: "Spending",
-                            colorByPoint: true,
-                            data: chartData,
-                        },
-                    ],
+                    series: [{ name: "Spending", colorByPoint: true, data: chartData }],
                 });
             } catch (err) {
                 console.error("Error loading spending chart:", err);
@@ -81,7 +135,7 @@ function FinancialDashboard() {
         };
 
         fetchData();
-    }, []);
+    }, [period]); // refetch chart when `period` changes
 
     const [accounts, setAccounts] = useState([]);
     const [accountName, setAccountName] = useState("");
@@ -102,7 +156,17 @@ function FinancialDashboard() {
 
     // add account
     const handleAddAccount = async () => {
-        if (!accountName) return;
+        // if (!accountName) return;
+
+        if (!accountName?.trim()) {
+            alert("Please enter an account name.");
+            return;
+        }
+
+        if (accountName.trim().length > 30) {
+            alert("Account name cannot exceed 30 characters.");
+            return;
+        }
 
         try {
             const res = await makeRequest("add-account", {
@@ -207,8 +271,23 @@ function FinancialDashboard() {
     }, []);
 
     const handleAddTransaction = async () => {
+        if (!transactionName?.trim()) {
+            alert("Transaction name cannot be empty.");
+            return;
+        }
+
+
         if (!transactionName || !amount || !accountId || !categoryId || !type) {
             alert("Please fill all fields");
+            return;
+        }
+                if (transactionName.trim().length > 50) {
+            alert("Transaction name cannot exceed 50 characters.");
+            return;
+        }
+
+        if (Number(amount) < 0) {
+            alert("Amount cannot be negative.");
             return;
         }
 
@@ -318,6 +397,11 @@ function FinancialDashboard() {
     // Handle form submit
     const handleSubmit = async (e) => {
         e.preventDefault();
+        //Validate limit_amount
+        if (Number(formData.limit_amount) < 0) {
+            alert("Budget value can't be negative.");
+            return;
+        }
         try {
             await makeRequest("set-budget", {
                 method: "POST",
@@ -607,7 +691,7 @@ function FinancialDashboard() {
                 </div>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 bg-light-background dark:bg-dark-background border-1 border-accent/70 p-6 rounded-lg shadow-lg">
+                {/* <div className="lg:col-span-2 bg-light-background dark:bg-dark-background border-1 border-accent/70 p-6 rounded-lg shadow-lg">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold text-gray-800 dark:text-dark-text">Expense Breakdown</h2>
                         <div className="relative">
@@ -615,6 +699,7 @@ function FinancialDashboard() {
                                 className="appearance-none bg-light-background dark:bg-dark-background border border-accent/70 text-gray-700 dark:text-dark-text py-2 px-4 pr-8 rounded-lg leading-tight focus:outline-none">
                                 <option>This Month</option>
                                 <option>Last Month</option>
+                                <option>All</option>
                             </select>
                             <div
                                 className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
@@ -623,6 +708,26 @@ function FinancialDashboard() {
                         </div>
                     </div>
                     <div id="pie-chart" className="w-full h-[400px] "></div>
+                </div> */}
+                <div className="lg:col-span-2 bg-light-background dark:bg-dark-background border-1 border-accent/70 p-6 rounded-lg shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-dark-text">Expense Breakdown</h2>
+                        <div className="relative">
+                            <select
+                                value={period}
+                                onChange={(e) => setPeriod(e.target.value)}
+                                className="appearance-none bg-light-background dark:bg-dark-background border border-accent/70 text-gray-700 dark:text-dark-text py-2 px-4 pr-8 rounded-lg leading-tight focus:outline-none"
+                            >
+                                <option value="this_month">This Month</option>
+                                <option value="last_month">Last Month</option>
+                                <option value="all">All</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <MdExpandMore className="text-gray-500" size={20} />
+                            </div>
+                        </div>
+                    </div>
+                    <div id="pie-chart" className="w-full h-[400px]"></div>
                 </div>
                 <div className="bg-light-background dark:bg-dark-background border-1 border-accent/70 p-6 rounded-lg shadow">
                     <h2 className="text-xl font-bold text-gray-800 dark:text-dark-text mb-6">Smart Suggestions</h2>

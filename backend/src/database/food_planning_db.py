@@ -50,6 +50,15 @@ async def store_users_foodPlanning_info(cursor, conn, user_id: str, survey_data:
                 survey_data.get("meal_plan"),
             ),
         )
+        
+        # Update user table to mark survey as completed
+        update_sql = """
+            UPDATE user
+            SET meal_survey_completed = 1
+            WHERE user_ID = %s
+        """
+        await cursor.execute(update_sql, (user_id,))
+        
         await conn.commit()
 
         await clear_user_cache(user_id, "get_user_food_planning_info")
@@ -258,9 +267,7 @@ async def delete_all_meal(cursor, conn, user_id: str):
 
 # ✅ Get meal plan by user
 async def get_meal_plan(cursor, user_id: str):
-    """
-    Fetch all meal plans for a given user.
-    """
+    print("🤖")
     await cursor.execute("SELECT * FROM meal_plan WHERE user_id = %s", (user_id,))
     return await cursor.fetchall()
 
@@ -778,8 +785,11 @@ async def store_grocery_list(cursor, conn, user_id, list_name, total_price, item
         await conn.rollback()
         print(f"❌ Error storing grocery list: {e}")
         raise e
-    
-async def record_transaction(cursor, conn, account_ID, description, amount, category_ID, type):
+
+
+async def record_transaction(
+    cursor, conn, account_ID, description, amount, category_ID, type
+):
     """
     Inserts a new transaction entry for an account.
     type can be 'DEBIT' or 'CREDIT'
@@ -790,29 +800,30 @@ async def record_transaction(cursor, conn, account_ID, description, amount, cate
             INSERT INTO transactions (account_ID, amount, type, description, category_ID, created_at)
             VALUES (%s, %s, %s, %s, %s, NOW())
             """,
-            (account_ID, amount, type, description, category_ID)
+            (account_ID, amount, type, description, category_ID),
         )
 
         # ✅ Update account balance
         if type.upper() == "DEBIT":
             await cursor.execute(
                 "UPDATE accounts SET balance = balance - %s WHERE account_ID = %s",
-                (amount, account_ID)
+                (amount, account_ID),
             )
         elif type.upper() == "CREDIT":
             await cursor.execute(
                 "UPDATE accounts SET balance = balance + %s WHERE account_ID = %s",
-                (amount, account_ID)
+                (amount, account_ID),
             )
 
         await conn.commit()
-        print(f"💰 Recorded {type} transaction for account {account_ID} of amount {amount}")
+        print(
+            f"💰 Recorded {type} transaction for account {account_ID} of amount {amount}"
+        )
 
     except Exception as e:
         await conn.rollback()
         print(f"❌ Error recording transaction: {e}")
         raise e
-
 
 
 async def get_grocery_dashboard_stats(cursor, user_id):
@@ -880,7 +891,7 @@ async def get_grocery_dashboard_stats(cursor, user_id):
         food_budget = row["limit_amount"] if row else 0
 
         # Calculate percentage
-        percentage = (food_expense / food_budget * 100) if food_budget > 0 else 0
+        percentage = 100-(food_expense / food_budget * 100) if food_budget > 0 else 0
 
         return {
             "total_lists": total_lists,
@@ -960,9 +971,8 @@ async def delete_available_grocery(cursor, conn, user_id, grocery_id):
         print(f"❌ Error deleting grocery: {e}")
         raise e
 
-
-# db.py
-async def fetch_grocery_lists(cursor, conn, user_id: int, filter: str = "all"):
+    # db.py
+    # async def fetch_grocery_lists(cursor, conn, user_id: int, filter: str = "all"):
     try:
         from datetime import datetime, timedelta
 
@@ -993,6 +1003,51 @@ async def fetch_grocery_lists(cursor, conn, user_id: int, filter: str = "all"):
         await cursor.execute(sql, (user_id,))
         result = await cursor.fetchall()
         return result if result else []
+
+    except Exception as e:
+        print(f"❌ Error fetching grocery lists: {e}")
+        raise e
+
+
+async def fetch_grocery_lists(cursor, conn, user_id: int, filter: str = "all"):
+    try:
+        from datetime import datetime, timedelta
+
+        today = datetime.today()
+        filter_query = ""
+
+        if filter == "this_month":
+            filter_query = f"AND MONTH(gl.created_at) = {today.month} AND YEAR(gl.created_at) = {today.year}"
+        elif filter == "last_month":
+            last_month = today.replace(day=1) - timedelta(days=1)
+            filter_query = f"AND MONTH(gl.created_at) = {last_month.month} AND YEAR(gl.created_at) = {last_month.year}"
+
+        sql = f"""
+            SELECT gl.list_id,
+                   gl.list_name,
+                   gl.created_at,
+                   IFNULL(SUM(gli.quantity * gli.price_per_unit), 0) AS total_price,
+                   COUNT(gli.item_id) AS items_count
+            FROM grocery_list gl
+            LEFT JOIN grocery_list_items gli ON gl.list_id = gli.list_id
+            WHERE gl.user_id = %s
+            {filter_query}
+            GROUP BY gl.list_id
+            ORDER BY gl.created_at DESC
+        """
+        await cursor.execute(sql, (user_id,))
+        result = await cursor.fetchall()
+
+        # ✅ Also fetch the food budget for this user (monthly)
+        await cursor.execute(
+            "SELECT limit_amount FROM budgets WHERE user_id = %s AND category_id = 1 LIMIT 1",
+            (user_id,),
+        )
+        budget_row = await cursor.fetchone()
+        budget_amount = budget_row["limit_amount"] if budget_row else 0
+
+        # ✅ Return both lists and budget
+        return {"lists": result if result else [], "budget": budget_amount}
 
     except Exception as e:
         print(f"❌ Error fetching grocery lists: {e}")

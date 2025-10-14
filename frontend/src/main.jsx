@@ -3,17 +3,14 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { ChatProvider } from "./pages/chat/ChatContext.jsx";
-
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-
-if (!PUBLISHABLE_KEY) {
-  throw new Error('Missing Publishable Key')
-}
+import { BrowserRouter } from 'react-router-dom';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ChatProvider>
-    <App />
-    </ChatProvider>
+    <BrowserRouter>
+      <ChatProvider>
+        <App />
+      </ChatProvider>
+    </BrowserRouter>
   </StrictMode>,
 )

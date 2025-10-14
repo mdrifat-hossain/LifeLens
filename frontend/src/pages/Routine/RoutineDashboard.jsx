@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useApi } from "../../utils/api";
 import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 
 function RoutineDashboard() {
@@ -42,7 +44,7 @@ function RoutineDashboard() {
     // Task stats
     // const [tasks, setTasks] = useState([]);
 
-    const completedTasks = (tasks || []).filter(t => t.completed).length;
+    const completedTasks = (tasks || []).filter(t => t?.completed).length;
     const totalTasks = (tasks || []).length;
     const taskCompletion = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
@@ -69,8 +71,57 @@ function RoutineDashboard() {
     }, []);
 
     // Add new task
+    // const handleAddTask = async () => {
+    //     if (!newTask.trim()) return;
+
+    //     try {
+    //         await makeRequest("add_task", {
+    //             method: "POST",
+    //             body: JSON.stringify({ task_name: newTask }),
+    //         });
+
+    //         // After adding, fetch updated list from backend
+    //         const res = await makeRequest("get_tasks", { method: "GET" });
+    //         setTasks(res.tasks || []);
+
+    //         setNewTask("");
+    //         setShowForm(false);
+    //     } catch (err) {
+    //         console.error("Error adding task:", err);
+    //     }
+    // };
+
     const handleAddTask = async () => {
-        if (!newTask.trim()) return;
+        // if (!newTask.trim()) return;
+        const trimmedTask = newTask.trim();
+
+        // ✅ Validate empty
+        if (!trimmedTask) {
+            toast.warning("Please enter a task name.", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
+            return;
+        }
+
+        // ✅ Validate length
+        if (trimmedTask.length > 30) {
+            toast.warning("Task name cannot exceed 30 characters.", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
+            return;
+        }
 
         try {
             await makeRequest("add_task", {
@@ -88,8 +139,6 @@ function RoutineDashboard() {
             console.error("Error adding task:", err);
         }
     };
-
-
 
 
     // Toggle complete
@@ -283,6 +332,7 @@ function RoutineDashboard() {
 
     return (
         <div className="flex-grow p-6 lg:p-8 bg-light-background dark:bg-dark-background h-[calc(100vh-4rem)]">
+            <ToastContainer />
             <div className="max-w-7xl mx-auto">
                 <div className="bg-light-background dark:bg-dark-background p-6 rounded-lg shadow-lg mb-6 border-1 border-accent/50">
                     <div className="flex justify-between items-center">
@@ -504,6 +554,7 @@ function RoutineDashboard() {
                             <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-black dark:text-dark-text">Today's Tasks</h3>
                                 <button
+                                    id='addIcon'
                                     className="text-indigo-600 hover:text-indigo-800"
                                     onClick={() => setShowForm(!showForm)}
                                 >
@@ -514,12 +565,14 @@ function RoutineDashboard() {
                             {showForm && (
                                 <div className="flex items-center space-x-2 mt-4">
                                     <input
+                                        id='taskName'
                                         value={newTask}
                                         onChange={(e) => setNewTask(e.target.value)}
                                         className="flex-1 p-2 dark:text-dark-text border-1 border-accent/70 rounded focus:outline-none"
                                         placeholder="Enter new task..."
                                     />
                                     <button
+                                        id='addTask'
                                         onClick={handleAddTask}
                                         className="bg-primary text-black px-4 py-2 rounded hover:bg-primary/90 cursor-pointer"
                                     >

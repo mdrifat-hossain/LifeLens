@@ -469,7 +469,7 @@ function RoutineEdit() {
     const handleAddRoutine = async () => {
         // console.log("Routine handle ", routines);
         const { routineName, description, startTime, endTime, color, selectedDays } = formData;
-        // console.log("Adding Routine:", formData);
+        console.log("Adding Routine:", formData);
 
         if (!routineName || !startTime || !endTime || !selectedDays?.length) {
             // toast.error("Please fill name, start/end time and select day(s).");
@@ -492,6 +492,18 @@ function RoutineEdit() {
 
         if (newStartMin == null || newEndMin == null) {
             toast.error("Invalid time format. Use HH:MM.", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
+            return;
+        }
+        if (newEndMin <= newStartMin) {
+            toast.warning("End time cannot be earlier than or equal to start time.", {
                 position: "bottom-right",
                 autoClose: 5000,
                 hideProgressBar: false,

@@ -395,13 +395,15 @@ async def change_meal_plan(
                 # img_url = meal_image_generator.generate_image(meal["name"])
                 result = meal_image_generator.generate_image(new_meal["name"])
                 img_url = (
-                    result[0] if isinstance(result, list) and len(result) > 0 else None
+                    result[0]
+                    if isinstance(result, list) and len(result) > 0
+                    else None
                 )
-                new_meal["img_link"] = img_url
+                new_meal['img_link'] = img_url
 
             except Exception as e:
                 img_url = None  # or use a fallback placeholder image
-                new_meal["img_link"] = img_url
+                new_meal['img_link'] = img_url
 
             await food_planning_db.change_meal(cursor, conn, user_id, new_meal)
 
@@ -662,15 +664,15 @@ async def add_grocery_list(
                 f"🔄 Processing: {raw_name} → {matched_name} | {unit_quantity_number} {unit_unit} × {item_quantity}"
             )
 
-            # await food_planning_db.update_or_insert_available_grocery(
-            #     cursor=cursor,
-            #     conn=conn,
-            #     user_id=user_id,
-            #     grocery_name=matched_name,
-            #     item_quantity=item_quantity,
-            #     unit_quantity_number=unit_quantity_number,
-            #     unit_unit=unit_unit,
-            # )
+            await food_planning_db.update_or_insert_available_grocery(
+                cursor=cursor,
+                conn=conn,
+                user_id=user_id,
+                grocery_name=matched_name,
+                item_quantity=item_quantity,
+                unit_quantity_number=unit_quantity_number,
+                unit_unit=unit_unit,
+            )
 
         return {
             "status": "success",
@@ -684,6 +686,7 @@ async def add_grocery_list(
         raise HTTPException(
             status_code=500, detail=f"Error saving grocery list: {str(e)}"
         )
+
 
 
 @router.get("/grocery_dashboard_stats")
@@ -773,6 +776,23 @@ async def delete_available_grocery(
         raise HTTPException(status_code=500, detail=f"Error deleting grocery: {str(e)}")
 
 
+# @router.get("/grocery-lists")
+# async def get_grocery_lists(
+#     request_obj: Request, filter: str = "all", db_dep=Depends(get_db)
+# ):
+#     try:
+#         cursor, conn = db_dep
+#         user_details = authenticate_and_get_user_details(request_obj)
+#         user_id = user_details["user_id"]
+#         lists = await food_planning_db.fetch_grocery_lists(
+#             cursor, conn, user_id, filter
+#         )
+#         return lists
+#     except Exception as e:
+#         import traceback
+
+#         print("Error in get_grocery_lists:", traceback.format_exc())
+#         raise HTTPException(status_code=500, detail=str(e))
 @router.get("/grocery-lists")
 async def get_grocery_lists(
     request_obj: Request, filter: str = "all", db_dep=Depends(get_db)
@@ -781,13 +801,10 @@ async def get_grocery_lists(
         cursor, conn = db_dep
         user_details = authenticate_and_get_user_details(request_obj)
         user_id = user_details["user_id"]
-        lists = await food_planning_db.fetch_grocery_lists(
-            cursor, conn, user_id, filter
-        )
-        return lists
+        data = await food_planning_db.fetch_grocery_lists(cursor, conn, user_id, filter)
+        return data
     except Exception as e:
         import traceback
-
         print("Error in get_grocery_lists:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -818,3 +835,24 @@ async def get_grocery_list_details(
         raise HTTPException(
             status_code=500, detail=f"Error fetching grocery list details: {str(e)}"
         )
+
+
+@router.get("/get-foodPlanning-survey")
+async def get_foodPlanning_survey(request: Request = None, db_dep=Depends(get_db)):
+    try:
+        cursor, conn = db_dep
+        user_details = authenticate_and_get_user_details(request)
+        user_id = user_details.get("user_id")
+
+
+        user_records = await redis_db_services.get_user_food_planning_info(
+            user_id, cursor
+        )
+        
+        return {"status": "success", "data": user_records}
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print("Meal generator error:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

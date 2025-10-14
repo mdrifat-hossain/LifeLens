@@ -92,7 +92,36 @@ const MealChangeAndAlerts = ({ mealData, onUpdateMeal }) => {
 
 
     const handleGenerate = async () => {
-        if (!text.trim()) return;
+        // if (!text.trim()) return;
+        const trimmedTask = text.trim();
+
+        // ✅ Validate empty
+        if (!trimmedTask) {
+            toast.warning("Please enter what you need?", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
+            return;
+        }
+
+        // ✅ Validate length
+        if (trimmedTask.length > 100) {
+            toast.warning("Text cannot exceed 100 characters.", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: undefined,
+            });
+            return;
+        }
 
         try {
             setIsLoading(true);
@@ -193,6 +222,12 @@ const MealChangeAndAlerts = ({ mealData, onUpdateMeal }) => {
         }
     };
 
+    useEffect(() => {
+  if (window.__TEST__) {
+    window.__TEST__.setText = setText;
+  }
+}, []);
+
 
     return (
 
@@ -207,8 +242,10 @@ const MealChangeAndAlerts = ({ mealData, onUpdateMeal }) => {
             <div className="flex flex-wrap items-end gap-4 px-4 py-3">
                 <label className="flex flex-col min-w-40 flex-1">
                     <textarea
+                        id="myTextArea"
                         disabled={isLoading}
-                        value={text}
+                        // value={text}
+                        defaultValue={displayText}
                         onChange={(e) => setText(e.target.value)}
                         placeholder={displayText}
                         className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-light-text dark:text-dark-text 

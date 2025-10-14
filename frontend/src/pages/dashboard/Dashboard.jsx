@@ -14,6 +14,7 @@ import { FaLightbulb } from "react-icons/fa";
 import { FaArrowTrendUp } from "react-icons/fa6";
 import { MdReport } from "react-icons/md";
 import { IoMdAdd } from "react-icons/io";
+import { toast } from "react-toastify";
 
 function Dashboard() {
   const { makeRequest } = useApi();
@@ -103,25 +104,82 @@ function Dashboard() {
   }, []);
 
   // Add new task
+
+  // const handleAddTask = async () => {
+  //   if (!newTask.trim()) return;
+
+  //   try {
+  //     const res = await makeRequest("add_task", {
+  //       method: "POST",
+  //       body: JSON.stringify({ task_name: newTask }),
+  //     });
+  //     // Add to local state
+  //     setTasks((prev) => [...prev, res.task]);
+  //     setNewTask("");
+  //     setShowForm(false);
+  //   } catch (err) {
+  //     console.error("Error adding task:", err);
+  //   }
+  // };
+
+
+  // Toggle complete
   const handleAddTask = async () => {
-    if (!newTask.trim()) return;
+    // if (!newTask.trim()) return;
+    const trimmedTask = newTask.trim();
+
+    // ✅ Validate empty
+    if (!trimmedTask) {
+      toast.warning("Please enter a task name.", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: false,
+        progress: undefined,
+      });
+      return;
+    }
+
+    // ✅ Validate length
+    if (trimmedTask.length > 30) {
+      toast.warning("Task name cannot exceed 30 characters.", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: false,
+        progress: undefined,
+      });
+      return;
+    }
 
     try {
       const res = await makeRequest("add_task", {
         method: "POST",
-        body: JSON.stringify({ task_name: newTask }),
+        body: JSON.stringify({ task_name: trimmedTask }),
       });
-      // Add to local state
+
+      // ✅ Update UI
       setTasks((prev) => [...prev, res.task]);
       setNewTask("");
       setShowForm(false);
     } catch (err) {
       console.error("Error adding task:", err);
+      toast.error("Failed to add task. Please try again.", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: false,
+        progress: undefined,
+      });
     }
   };
 
-
-  // Toggle complete
   const handleToggleComplete = async (taskId) => {
     setTasks(prev =>
       prev.map(task =>
