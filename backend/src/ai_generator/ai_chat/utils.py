@@ -9,7 +9,8 @@ def vector_ranker(domains, query):
     relevant_domains = vector_ranker.rerank(query, domains)
 
     print(relevant_domains)
-    top_domains = relevant_domains[:3]
+    top_domains = relevant_domains[:]
+    print("✅ top_domains>> ",top_domains)
 
     return top_domains
 
@@ -26,7 +27,8 @@ def retrieved_context_maker(top_domains, domains):
                 })
 
     retrieved_context = "\n\n".join(
-        f"{d['name']}:\n{json.dumps(d['desc'], indent=2)}"
+        # f"{d['name']}:\n{json.dumps(d['desc'], indent=2)}"
+        f"{d['name']}:\n{json.dumps(d['desc'], indent=2, default=str)}"
         for d in retrieved_context
     )
 
