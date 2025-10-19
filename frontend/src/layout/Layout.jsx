@@ -8,10 +8,12 @@ import ChatWidget from "../pages/chat/ChatWidget";
 import { useTheme } from "./useTheme";
 import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export function Layout() {
     const { darkMode, setDarkMode } = useTheme();
     const [scrolled, setScrolled] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -72,8 +74,8 @@ export function Layout() {
                                         <Link
                                             to={basePath}
                                             className={`px-2 py-1 rounded-md transition-colors duration-200 ${isActive
-                                                    ? "text-primary font-extrabold"
-                                                    : "hover:bg-green-200 dark:hover:bg-green-800"
+                                                ? "text-primary font-extrabold"
+                                                : "hover:bg-green-200 dark:hover:bg-green-800"
                                                 }`}
                                         >
                                             {item.name}
@@ -94,12 +96,12 @@ export function Layout() {
 
                         {/* User Button */}
                         <UserButton afterSignOutUrl="/">
-                            
+
                             <UserButton.MenuItems>
                                 <UserButton.Action
-                                    label="Profile"
-                                    onClick={() => setDarkMode((prev) => !prev)}
-                                    labelIcon="👤"
+                                    label="Survey & Report"
+                                    labelIcon="📊"
+                                    onClick={() => navigate("/survey-report")}
                                 />
                                 <UserButton.Action
                                     label={darkMode ? "Light Mode" : "Dark Mode"}
