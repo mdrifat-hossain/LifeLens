@@ -30,6 +30,7 @@ import SignInPage from "./auth/SignInPage";
 import SignUpPage from "./auth/SignUpPage";
 import { useState, useEffect } from "react";
 import { useApi } from "./utils/api";
+import SurveyAndReport from './pages/surveyEditAndReport/SurveyAndReport'
 
 // function ProtectedMealPlan() {
 // 	const isNewUser = false;
@@ -126,7 +127,12 @@ function App() {
 				<Route path="/sign-up/*" element={<SignUpPage />} />
 				<Route element={<Layout />}>
 					<Route path="/dashboard" element={<Dashboard />} />
-					<Route path="/chat" element={<ChatPage />} />   {/* now safe */}
+					<Route path="/chat" element={<ChatPage />} />
+					<Route path="/survey-report/*" element={<SurveyAndReport />}>
+						<Route path="meal-survey" element={<MealSurvey />} />
+						<Route path="career-survey" element={<CareerSurvey />} />
+					</Route>
+
 					<Route path="/meal-survey" element={<MealSurvey />} />
 					<Route path="/meal-plan/*" element={<ProtectedMealPlan />}>
 						<Route index element={<MealPlanMain />} />
