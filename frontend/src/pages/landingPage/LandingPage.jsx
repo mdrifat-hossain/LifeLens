@@ -2,6 +2,8 @@ import React from 'react'
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
+import { useApi } from "../../utils/api";
+import { useNavigate } from "react-router-dom";
 
 import { FaProjectDiagram } from "react-icons/fa";
 import { GiPathDistance } from "react-icons/gi";
@@ -63,6 +65,7 @@ const reviews = [
 const headline = "Live Smarter with LifeLens : Your AI Companion for Health, Productivity & Growth";
 
 export default function LandingPage() {
+    const { makeRequest } = useApi();
     const [openIndex, setOpenIndex] = useState(null);
     const [scrolled, setScrolled] = useState(false);
 
@@ -119,84 +122,72 @@ export default function LandingPage() {
         if (video) video.playbackRate = 0.15; // Slow down to 0.25x speed
     }, []);
 
+    const navigate = useNavigate();
+    const [showLoginDropdown, setShowLoginDropdown] = useState(false);
+
+    const handleLoginClick = async (role) => {
+        try {
+            // Use makeRequest instead of fetch
+            const data = await makeRequest(`check-role?role=${role}`);
+            if (data.status === "success" && data.role.toLowerCase() === "admin") {
+                navigate("/admin-dashboard");
+            } else if (data.status === "success" && data.role.toLowerCase() === "user") {
+                navigate("/sign-in");
+            } else {
+                alert("User not found or invalid role!");
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("Something went wrong!");
+        }
+    };
+
+
+
     return (
         <body class="bg-emerald-50 text-text-dark font-display relative overflow-x-hidden">
-            {/* Background Video Layer */}
-            {/* <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10">
-                <video
-                    id="bgVideo"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    className="w-full h-full object-cover"
-                    style={{
-                        opacity: 0.25, 
-                        filter: "brightness(0.6) contrast(0.8) saturate(0.6) blur(1px)",
-                        transform: "scale(1.05)",
-                        mixBlendMode: "overlay",
-                    }}
-                >
-                    <source src={bg_animation} type="video/mp4" />
-                    Your browser does not support the video tag.
-                </video>
-
-                <div className="absolute inset-0 bg-emerald-50/50"></div>
-            </div> */}
 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 z-20">
-                <header
-                    className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled
-                        ? "bg-white/50 backdrop-blur-md shadow-md"
-                        : "bg-transparent"
-                        }`}
-                >
+                <header className="fixed top-0 left-0 w-full z-50 transition-all duration-300 bg-transparent">
                     <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-                        <div className="flex items-center space-x-2">
-                            <h1 className="text-2xl font-bold">LifeLens</h1>
-                        </div>
+                        <h1 className="text-2xl font-bold">LifeLens</h1>
 
-                        <nav className="hidden md:flex items-center space-x-8">
-                            <a
-                                className="text-sm text-text-secondary-dark hover:text-text-dark"
-                                href="#"
-                            >
-                                Features
-                            </a>
-                            <a
-                                className="text-sm text-text-secondary-dark hover:text-text-dark"
-                                href="#"
-                            >
-                                How it works
-                            </a>
-                            <a
-                                className="text-sm text-text-secondary-dark hover:text-text-dark"
-                                href="#"
-                            >
-                                Testimonials
-                            </a>
-                            <a
-                                className="text-sm text-text-secondary-dark hover:text-text-dark"
-                                href="#"
-                            >
-                                FAQ
-                            </a>
-                        </nav>
-
-                        <div className="flex items-center space-x-4">
-                            <Link
-                                className="text-sm text-text-secondary-dark hover:text-text-dark hidden md:block"
-                                to="/sign-in"
+                        <div className="relative inline-block">
+                            <button
+                                onMouseEnter={() => setShowLoginDropdown(true)}
+                                className="text-sm text-text-secondary-dark hover:text-text-dark px-4 py-2 rounded-lg border"
                             >
                                 Login
-                            </Link>
-                            <Link
-                                className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium"
-                                to="/sign-up"
-                            >
-                                Sign up
-                            </Link>
+                            </button>
+
+                            {showLoginDropdown && (
+                                <div className="absolute right-0 mt-2 w-40 bg-white shadow-md rounded-md border z-[9999]">
+                                    <button
+                                        className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                                        onClick={() => navigate("/sign-in?role=user")}
+                                    >
+                                        User Login
+                                    </button>
+                                    <button
+                                        className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                                        onClick={() => navigate("/admin-sign-in")}
+                                    >
+                                        Admin Login
+                                    </button>
+                                </div>
+                            )}
+
                         </div>
+
+
+
+                        <Link
+                            className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium ml-4 hidden md:block"
+                            to="/sign-up"
+                        >
+                            Sign up
+                        </Link>
                     </div>
                 </header>
                 <main>
@@ -239,28 +230,8 @@ export default function LandingPage() {
                                         </span>
                                     </button>
                                 </div>
-                                {/* <div className="flex items-center space-x-12 pt-8">
-                                    <div>
-                                        <p className="text-3xl font-bold text-white">$2.5B+</p>
-                                        <p className="text-text-secondary-dark">Trading Volume</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-3xl font-bold text-white">120K+</p>
-                                        <p className="text-text-secondary-dark">Active Traders</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-3xl font-bold text-white">50+</p>
-                                        <p className="text-text-secondary-dark">Global Markets</p>
-                                    </div>
-                                </div> */}
                             </div>
                             <div className="relative w-full max-w-xl mx-auto">
-                                {/* Main Image */}
-                                {/* <img
-                                    alt="Person trading crypto on a laptop"
-                                    className="rounded-2xl shadow-2xl w-full"
-                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjPcV7hxh_ylX-qLXaurN2zBBnUNBqENx9dTIFraSQAIqhEZqAWw4ziMQJk3KOElK1HfX0xPkDn5_C8-FR6x7MfX-rdHQj8jyJhEsCMk3GQW6QLwQCMrXkLhiwNjWCTcaTgQVqs58a_poOilAr7plFx7fUmvqxhDokcpQ0kAyx5xmwv9E3ccqOkp3zt3DqQDCB30tIspusXRQUJ06kzcqbMRONnTJlkvRURejjXPjr4xGkvwdC5JtBe3xXY2acyZ-3nOFd2-wBEdk"
-                                /> */}
                                 <DotLottieReact
                                     className="rounded-2xl shadow-2xl w-full"
                                     src="https://lottie.host/2196a326-5692-41e9-bc35-23627c3defc0/3cfGLUuZtg.lottie"
@@ -274,25 +245,6 @@ export default function LandingPage() {
 
                         </div>
                     </section>
-                    {/* Security Level Card - top-left, partially outside */}
-                    {/* <div className="absolute -top-8 -left-8 bg-card-dark/80 backdrop-blur-sm p-4 rounded-lg shadow-lg flex items-center space-x-3 max-w-xs">
-                                    <div className="p-2 bg-purple-200 rounded-full flex items-center justify-center">
-                                        <span className="material-icons text-primary text-lg">security</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-text-secondary-dark"> Data Protection Level</p>
-                                        <p className="font-bold text-white">Enterprise</p>
-                                    </div>
-                                </div> */}
-
-                    {/* 24h Change Card - bottom-right, partially outside */}
-                    {/* <div className="absolute -bottom-3 -right-3 bg-card-dark/80 backdrop-blur-sm p-4 rounded-lg shadow-lg max-w-xs">
-                                    <div className="flex items-center text-green-600 font-bold mt-1">
-                                        <p className="text-sm text-text-secondary-dark">Daily Productivity</p>
-                                        <span className="material-icons text-lg mr-1">arrow_upward</span>
-                                        <p></p>
-                                    </div>
-                                </div> */}
                     <section className="py-20">
                         <div className="text-center mb-12">
                             <h3 className="text-4xl font-bold">Powerful Features</h3>

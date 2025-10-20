@@ -31,6 +31,8 @@ import SignUpPage from "./auth/SignUpPage";
 import { useState, useEffect } from "react";
 import { useApi } from "./utils/api";
 import SurveyAndReport from './pages/surveyEditAndReport/SurveyAndReport'
+import AdminDashboard from './pages/adminSide/AdminDashboard'
+import RoleRedirect from './pages/landingPage/RoleRedirect'
 
 // function ProtectedMealPlan() {
 // 	const isNewUser = false;
@@ -125,6 +127,7 @@ function App() {
 				<Route path="/" element={<LandingPage />} />
 				<Route path="/sign-in/*" element={<SignInPage />} />
 				<Route path="/sign-up/*" element={<SignUpPage />} />
+				<Route path="/check-role-redirect" element={<RoleRedirect />} />
 				<Route element={<Layout />}>
 					<Route path="/dashboard" element={<Dashboard />} />
 					<Route path="/chat" element={<ChatPage />} />
