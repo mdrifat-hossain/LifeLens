@@ -45,6 +45,8 @@ async def ai_chat_answer(req: ConversationRequest, request_obj: Request = None, 
         user_health_alert = await redis_db_services.get_health_alert(user_id, cursor)
         user_routines = await redis_db_services.get_user_routines(user_id, cursor)
         user_task = await redis_db_services.get_tasks(user_id, cursor)
+        
+        print("✅ meal>>",user_grocery_list)
 
         domains = [
             {"name": "user_meal_plan", "desc": user_meal_plan},
